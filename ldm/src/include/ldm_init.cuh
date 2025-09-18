@@ -3,6 +3,7 @@
 #error "Include the header that declares class LDM before including ldm_init.cuh"
 #endif
 #include <chrono>
+#include "ldm_eki.cuh"
 
 void LDM::loadSimulationConfiguration(){
 
@@ -225,6 +226,259 @@ void LDM::initializeParticles(){
     std::sort(part.begin(), part.end(), [](const LDMpart& a, const LDMpart& b) {
         return a.timeidx < b.timeidx;
     });
+}
+
+void LDM::releaseParticlesForCurrentTime(float current_time_seconds) {
+    EKIConfig* ekiConfig = EKIConfig::getInstance();
+    
+    // Get current time step (15-minute intervals)
+    int time_step = ekiConfig->getCurrentTimeStep(current_time_seconds);
+    
+    // Get concentration for current time step
+    float current_concentration = ekiConfig->getSourceEmission(time_step);
+    
+    if (current_concentration <= 0.0f) {
+        return;  // No emission for this time step
+    }
+    
+    // Calculate how many particles to release based on concentration
+    // This could be a fixed number per time step or proportional to concentration
+    int particles_to_release = 100;  // Base number, can be adjusted
+    
+    // Get source position from EKI config
+    float source_lon = ekiConfig->getSourceLon();
+    float source_lat = ekiConfig->getSourceLat();
+    float source_alt = ekiConfig->getSourceAlt();
+    
+    // Convert coordinates to grid coordinates
+    float x = (source_lon + 179.0) / 0.5;
+    float y = (source_lat + 90) / 0.5;
+    float z = source_alt;
+    
+    std::random_device rd;
+    auto now = std::chrono::high_resolution_clock::now();
+    auto seed = now.time_since_epoch().count() + mpiRank * 1000 + time_step;
+    std::mt19937 gen(seed);
+    std::normal_distribution<float> dist(g_mpi.particleSizes[mpiRank], g_mpi.sizeStandardDeviations[mpiRank]);
+    
+    // Release particles with current time step concentration
+    for (int i = 0; i < particles_to_release; ++i) {
+        float random_radius = dist(gen);
+        
+        part.push_back(LDMpart(x, y, z, 
+                               g_mpi.decayConstants[mpiRank], 
+                               current_concentration, 
+                               g_mpi.depositionVelocities[mpiRank], 
+                               random_radius, 
+                               g_mpi.particleDensities[mpiRank],
+                               time_step * 900));  // timeidx in seconds
+        
+        // Initialize multi-nuclide concentrations for the newly created particle
+        LDMpart& current_particle = part.back();
+        
+        // Get nuclide configuration
+        NuclideConfig* nucConfig = NuclideConfig::getInstance();
+        int num_nuclides = nucConfig->getNumNuclides();
+        
+        // Set up multi-nuclide concentrations
+        for(int nuc = 0; nuc < MAX_NUCLIDES; nuc++) {
+            if (nuc < num_nuclides) {
+                float initial_ratio = nucConfig->getInitialRatio(nuc);
+                current_particle.concentrations[nuc] = current_concentration * initial_ratio;
+            } else {
+                current_particle.concentrations[nuc] = 0.0f;
+            }
+        }
+        
+        // Set particle as active
+        current_particle.flag = 1;
+    }
+    
+    std::cout << "[DEBUG] Released " << particles_to_release << " particles at time step " 
+              << time_step << " (t=" << current_time_seconds << "s) with concentration " 
+              << current_concentration << " Bq" << std::endl;
+}
+
+void LDM::updateParticleConcentrationsFromEKI(float current_time_seconds) {
+    EKIConfig* ekiConfig = EKIConfig::getInstance();
+    
+    // Get current time step
+    int time_step = ekiConfig->getCurrentTimeStep(current_time_seconds);
+    
+    // Get concentration for current time step
+    float current_concentration = ekiConfig->getSourceEmission(time_step);
+    
+    if (current_concentration <= 0.0f) {
+        return;
+    }
+    
+    // Update concentrations for particles that are still active and recently emitted
+    int updated_particles = 0;
+    for (auto& particle : part) {
+        if (particle.flag == 1 && particle.age < 900.0f) {  // Active particles less than 15 minutes old
+            // Calculate time step when this particle was emitted
+            int particle_time_step = (int)(particle.age / 900.0f);
+            
+            if (particle_time_step == time_step) {
+                // Update concentration for particles emitted in current time step
+                particle.conc = current_concentration;
+                
+                // Update multi-nuclide concentrations
+                NuclideConfig* nucConfig = NuclideConfig::getInstance();
+                int num_nuclides = nucConfig->getNumNuclides();
+                
+                for(int nuc = 0; nuc < num_nuclides; nuc++) {
+                    float initial_ratio = nucConfig->getInitialRatio(nuc);
+                    particle.concentrations[nuc] = current_concentration * initial_ratio;
+                }
+                
+                updated_particles++;
+            }
+        }
+    }
+    
+    if (updated_particles > 0) {
+        std::cout << "[DEBUG] Updated " << updated_particles << " particles with new concentration " 
+                  << current_concentration << " Bq at time step " << time_step << std::endl;
+    }
+}
+
+void LDM::updateGPUParticleMemory() {
+    if (part.empty()) return;
+    
+    // Free existing GPU memory
+    if (d_part != nullptr) {
+        cudaFree(d_part);
+        d_part = nullptr;
+    }
+    
+    // Allocate new GPU memory for the updated particle count
+    size_t total_size = part.size() * sizeof(LDMpart);
+    
+    cudaError_t err = cudaMalloc((void**)&d_part, total_size);
+    if (err != cudaSuccess) {
+        std::cerr << "[ERROR] Failed to reallocate device memory for particles: " << cudaGetErrorString(err) << std::endl;
+        return;
+    }
+
+    // Copy all particles to GPU
+    err = cudaMemcpy(d_part, part.data(), total_size, cudaMemcpyHostToDevice);
+    if (err != cudaSuccess) {
+        std::cerr << "[ERROR] Failed to copy updated particle data to device: " << cudaGetErrorString(err) << std::endl;
+        cudaFree(d_part);
+        d_part = nullptr;
+    }
+}
+
+void LDM::logParticlePositionsForVisualization(int timestep, float currentTime) {
+    // Log every hour (3600 seconds)
+    if (fmod(currentTime, 3600.0f) < dt) {
+        int hour = (int)(currentTime / 3600.0f);
+        
+        // Copy particle data from GPU to CPU
+        std::vector<LDMpart> cpu_particles(part.size());
+        if (d_part != nullptr) {
+            cudaError_t err = cudaMemcpy(cpu_particles.data(), d_part, 
+                                       part.size() * sizeof(LDMpart), 
+                                       cudaMemcpyDeviceToHost);
+            if (err != cudaSuccess) {
+                std::cerr << "[ERROR] Failed to copy particle data from GPU: " << cudaGetErrorString(err) << std::endl;
+                return;
+            }
+        } else {
+            cpu_particles = part; // Use CPU data if GPU data not available
+        }
+        
+        // Create filename
+        std::string filename = "../logs/ldm_logs/particles_hour_" + std::to_string(hour) + ".csv";
+        std::ofstream file(filename);
+        
+        if (!file.is_open()) {
+            std::cerr << "[ERROR] Cannot create particle position file: " << filename << std::endl;
+            return;
+        }
+        
+        // Write CSV header
+        file << "particle_id,longitude,latitude,altitude,concentration,age,flag" << std::endl;
+        
+        // Write particle data
+        int active_particles = 0;
+        for (size_t i = 0; i < cpu_particles.size(); i++) {
+            const LDMpart& p = cpu_particles[i];
+            
+            if (p.flag == 1) { // Only active particles
+                // Convert from grid coordinates to geographic coordinates
+                float lon = p.x * 0.5f - 179.0f;
+                float lat = p.y * 0.5f - 90.0f;
+                float alt = p.z;
+                
+                file << i << "," 
+                     << std::fixed << std::setprecision(6) << lon << ","
+                     << std::fixed << std::setprecision(6) << lat << ","
+                     << std::fixed << std::setprecision(2) << alt << ","
+                     << std::scientific << std::setprecision(3) << p.conc << ","
+                     << std::fixed << std::setprecision(1) << p.age << ","
+                     << p.flag << std::endl;
+                active_particles++;
+            }
+        }
+        
+        file.close();
+        std::cout << "[VISUAL] Logged " << active_particles << " active particles at hour " 
+                  << hour << " (t=" << currentTime << "s) to " << filename << std::endl;
+    }
+}
+
+void LDM::logParticleCountData(int timestep, float currentTime) {
+    // Log every 10 time steps for particle count tracking
+    if (timestep % 10 == 0) {
+        std::string filename = "../logs/ldm_logs/particle_count.csv";
+        std::ofstream file;
+        
+        // Open in append mode, create header if file doesn't exist
+        bool file_exists = std::ifstream(filename).good();
+        file.open(filename, std::ios::app);
+        
+        if (!file.is_open()) {
+            std::cerr << "[ERROR] Cannot create particle count file: " << filename << std::endl;
+            return;
+        }
+        
+        if (!file_exists) {
+            file << "timestep,time_seconds,time_hours,total_particles,active_particles" << std::endl;
+        }
+        
+        // Count active particles
+        int active_particles = 0;
+        if (d_part != nullptr) {
+            // Copy flag data from GPU to count active particles
+            std::vector<int> flags(part.size());
+            for (size_t i = 0; i < part.size(); i += 1000) {
+                size_t count = std::min((size_t)1000, part.size() - i);
+                std::vector<LDMpart> temp_particles(count);
+                cudaError_t err = cudaMemcpy(temp_particles.data(), d_part + i, 
+                                           count * sizeof(LDMpart), 
+                                           cudaMemcpyDeviceToHost);
+                if (err == cudaSuccess) {
+                    for (size_t j = 0; j < count; j++) {
+                        if (temp_particles[j].flag == 1) active_particles++;
+                    }
+                }
+            }
+        } else {
+            for (const auto& p : part) {
+                if (p.flag == 1) active_particles++;
+            }
+        }
+        
+        file << timestep << ","
+             << std::fixed << std::setprecision(1) << currentTime << ","
+             << std::fixed << std::setprecision(3) << (currentTime / 3600.0f) << ","
+             << part.size() << ","
+             << active_particles << std::endl;
+        
+        file.close();
+    }
 }
 
 void LDM::calculateAverageSettlingVelocity(){

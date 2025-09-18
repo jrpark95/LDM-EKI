@@ -147,8 +147,30 @@ void LDM::runSimulation(){
 
         currentTime += dt;
 
+        // EKI-based time-dependent particle emission
+        static float last_emission_time = -1.0f;
+        static size_t last_particle_count = part.size();
+        
+        if (currentTime - last_emission_time >= 900.0f) {  // Every 15 minutes (900 seconds)
+            releaseParticlesForCurrentTime(currentTime);
+            last_emission_time = currentTime;
+            
+            // Update GPU memory if new particles were added
+            if (part.size() > last_particle_count) {
+                updateGPUParticleMemory();
+                last_particle_count = part.size();
+                std::cout << "[DEBUG] GPU memory updated. Total particles: " << part.size() << std::endl;
+            }
+        }
+        
+        // Update particle concentrations based on EKI time series
+        updateParticleConcentrationsFromEKI(currentTime);
+
         activationRatio = (currentTime) / time_end;
         t0 = (currentTime - static_cast<int>((currentTime-1e-5)/time_interval)*time_interval) / time_interval;
+
+        // Recalculate blocks in case new particles were added
+        blocks = (part.size() + threadsPerBlock - 1) / threadsPerBlock;
 
         update_particle_flags<<<blocks, threadsPerBlock>>>
             (d_part, activationRatio);
@@ -202,6 +224,10 @@ void LDM::runSimulation(){
             log_all_particles_nuclide_ratios(timestep, currentTime);
             log_first_particle_cram_detail(timestep, currentTime, dt);
             log_first_particle_decay_analysis(timestep, currentTime);
+            
+            // Log particle data for visualization
+            logParticlePositionsForVisualization(timestep, currentTime);
+            logParticleCountData(timestep, currentTime);
             
             // Export validation reference data
             exportValidationData(timestep, currentTime);

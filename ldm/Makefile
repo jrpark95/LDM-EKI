@@ -20,7 +20,7 @@ OBJ_PATH = .$(PATH_SEP)objectfiles
 
 TARGET = ldm
 
-SRCS = src/main.cu
+SRCS = src/main.cu src/ldm_eki.cu src/ldm_eki_logger.cu
 OBJS = $(addprefix $(OBJ_PATH)$(PATH_SEP), $(SRCS:.cu=.o))
 
 $(TARGET): $(OBJS)

@@ -58,14 +58,20 @@ public:
         std::cout << "[DEBUG] Successfully opened nuclide config file" << std::endl;
         
         // Debug: read and show first few lines
-        std::streampos pos = file.tellg();
         std::string debug_line;
         int line_count = 0;
         while (std::getline(file, debug_line) && line_count < 3) {
             std::cout << "[DEBUG] Line " << line_count << ": " << debug_line << std::endl;
             line_count++;
         }
-        file.seekg(pos);  // Reset to beginning
+        
+        // Close and reopen file to ensure clean state
+        file.close();
+        file.open(filename);
+        if (!file.is_open()) {
+            std::cerr << "[ERROR] Cannot reopen nuclides config file: " << filename << std::endl;
+            return false;
+        }
         
         nuclides.clear();
         std::string line;
@@ -74,14 +80,30 @@ public:
             // Skip comments and empty lines
             if (line.empty() || line[0] == '#') continue;
             
+            std::cout << "[DEBUG] Processing line: '" << line << "'" << std::endl;
+            
             std::istringstream iss(line);
             std::string name;
             float decay_const_from_file, ratio;
             
-            if (std::getline(iss, name, ',') && 
-                (iss >> decay_const_from_file) && 
-                iss.ignore() && 
-                (iss >> ratio)) {
+            // Parse CSV manually for better control
+            std::istringstream iss2(line);
+            std::string token;
+            std::vector<std::string> tokens;
+            
+            while (std::getline(iss2, token, ',')) {
+                tokens.push_back(token);
+            }
+            
+            std::cout << "[DEBUG] Parsed " << tokens.size() << " tokens" << std::endl;
+            for (size_t i = 0; i < tokens.size(); i++) {
+                std::cout << "[DEBUG] Token[" << i << "]: '" << tokens[i] << "'" << std::endl;
+            }
+            
+            if (tokens.size() == 3) {
+                name = tokens[0];
+                decay_const_from_file = std::stof(tokens[1]);
+                ratio = std::stof(tokens[2]);
                 
                 NuclideInfo info;
                 strncpy(info.name, name.c_str(), 31);

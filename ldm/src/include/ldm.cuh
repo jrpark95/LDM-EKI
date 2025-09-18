@@ -348,6 +348,15 @@ public:
     void calculateAverageSettlingVelocity();  // Used in main
     void initializeParticles();
     void calculateSettlingVelocity();
+    
+    // EKI time-based particle emission functions
+    void releaseParticlesForCurrentTime(float current_time_seconds);
+    void updateParticleConcentrationsFromEKI(float current_time_seconds);
+    void updateGPUParticleMemory();
+    
+    // Particle data logging and visualization functions
+    void logParticlePositionsForVisualization(int timestep, float currentTime);
+    void logParticleCountData(int timestep, float currentTime);
 
     // ldm_mdata.cuh
     void initializeFlexGFSData();  // Used in main
