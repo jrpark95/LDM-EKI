@@ -1,0 +1,29 @@
+# 컴파일된 바이너리
+ldm/ldm
+ldm/objectfiles/
+*.o
+*.exe
+
+# 결과 파일들
+ldm/output/*.vtk
+ldm/output/*.csv
+ldm/output/*.log
+eki/results/
+ldm/validation/
+logs/
+
+# 임시 파일들
+*~
+*.tmp
+*.swp
+.DS_Store
+
+# IDE 관련
+.vscode/
+.idea/
+
+# Claude 관련
+.claude/
+
+# 기상 데이터 (용량이 클 수 있음)
+# ldm/data/input/flexprewind/

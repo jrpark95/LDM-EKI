@@ -1,0 +1,107 @@
+time: 0.25  # Day
+time_interval: 5 # Minute
+inverse_time_interval: 0.25 # Hour
+ave_t: 3  # = inverse_time_interval * 60 / time_interval
+
+size_alt : 100
+size_lat : 100
+size_lon : 100
+alt_spacing : 500.0
+lat_spacing : 500.0
+lon_spacing : 500.0
+
+size_alt_wind: 100
+size_lat_wind: 100
+size_lon_wind: 100
+ 
+wind_init_mode: None
+wind_constant_value_x: -2.50
+wind_constant_value_y: 0.0
+wind_constant_value_z: 0.0
+wind_grid_interval: 1500
+grid_space_size_lat: 100
+grid_space_size_lon: 100
+
+puff_concentration_threshold: 0.0e-10
+R_max: 1.0E+200  # measurement max range
+
+
+
+nreceptor : 3
+receptor_position: [
+  # 3 receptors with same latitude as source (40.7490), different longitudes
+  [40.7490, -73.98, 0.0],   # Receptor 0 - lon: -73.98
+  [40.7490, -74.00, 0.0],   # Receptor 1 - lon: -74.00
+  [40.7490, -74.02, 0.0]    # Receptor 2 - lon: -74.02
+]
+nreceptor_err : 0.10  # relative error rate (10% - improved sensitivity)
+nreceptor_MDA : 5.0e-9 # Minimum Detection Activity(gamma dose rate - enhanced sensitivity)
+
+Source_location: 'Fixed' #[Fixed(Known), Single(Unknown), Multiple(Unknown)]
+
+nsource : 1
+
+source_name : ['Co-60-1', 'Co-60-2', 'Co-60-3', 'Co-60-4', 'Co-60-5', 'Co-60-6', 'Co-60-7', 'Co-60-8', 'Co-60-9', 'Co-60-10', 'Co-60-11', 'Co-60-12', 'Co-60-13', 'Co-60-14', 'Co-60-15', 'Co-60-16', 'Co-60-17', 'Co-60-18', 'Co-60-19', 'Co-60-20', 'Co-60-21', 'Co-60-22', 'Co-60-23', 'Co-60-24']
+
+# 6 hour
+# Source_1: [6.779608573551890e-05, 1.02e-13, [10.0, 10.0, 10.0], [1.90387731e+13,1.90387731e+13,1.90387731e+13,1.90387731e+13,1.90387731e+13,1.90387731e+13,1.90387731e+13,1.90387731e+13,1.90387731e+13,1.90387731e+13,1.90387731e+13,1.90387731e+13,1.90387731e+13,1.90387731e+13,1.90387731e+13,1.90387731e+13,1.90387731e+13,1.90387731e+13,1.90387731e+13,1.90387731e+13,1.90387731e+13,1.90387731e+13,1.90387731e+13,1.90387731e+13], 0.0e-0, 0.0e-0, 'Kr-88'] # Kr-88
+Source_1: [4.17e-9, 1.02e-13, [-73.9650, 40.7490, 10.0], [
+  1.0e+7,   # 0:00-0:15 - Start: 10M
+  1.2e+7,   # 0:15-0:30 - Linear increase: 12M  
+  1.4e+7,   # 0:30-0:45 - Linear increase: 14M
+  1.6e+7,   # 0:45-1:00 - Linear increase: 16M
+  1.8e+7,   # 1:00-1:15 - Linear increase: 18M
+  2.0e+7,   # 1:15-1:30 - Linear increase: 20M
+  2.2e+7,   # 1:30-1:45 - Linear increase: 22M
+  2.4e+7,   # 1:45-2:00 - Linear increase: 24M
+  2.6e+7,   # 2:00-2:15 - Linear increase: 26M
+  2.8e+7,   # 2:15-2:30 - Linear increase: 28M
+  3.0e+7,   # 2:30-2:45 - Linear increase: 30M
+  3.2e+7,   # 2:45-3:00 - Linear increase: 32M
+  3.4e+7,   # 3:00-3:15 - Linear increase: 34M
+  3.6e+7,   # 3:15-3:30 - Linear increase: 36M
+  3.8e+7,   # 3:30-3:45 - Linear increase: 38M
+  4.0e+7,   # 3:45-4:00 - Linear increase: 40M
+  4.2e+7,   # 4:00-4:15 - Linear increase: 42M
+  4.4e+7,   # 4:15-4:30 - Linear increase: 44M
+  4.6e+7,   # 4:30-4:45 - Linear increase: 46M
+  4.8e+7,   # 4:45-5:00 - Linear increase: 48M
+  5.0e+7,   # 5:00-5:15 - Linear increase: 50M
+  5.2e+7,   # 5:15-5:30 - Linear increase: 52M
+  5.4e+7,   # 5:30-5:45 - Linear increase: 54M
+  5.6e+7    # 5:45-6:00 - End: 56M
+  ], 0.0e-0, 0.0e-0, 'Co-60'] # LINEAR INCREASE: 1M to 5.6M over 6 hours
+#Source_1: [6.779608573551890e-05, 1.02e-13, [10.0, 10.0, 10.0], [2.4e+13, 2.3e+13, 2.2e+13, 2.1e+13, 2.0e+13, 1.9e+13, 1.8e+13, 1.7e+13, 1.6e+13, 1.5e+13, 1.4e+13, 1.3e+13, 2.4e+13, 2.3e+13, 2.2e+13, 2.1e+13, 2.0e+13, 1.9e+13, 1.8e+13, 1.7e+13, 1.6e+13, 1.5e+13, 1.4e+13, 1.3e+13], 0.0e-0, 0.0e-0, 'Kr-88'] # Kr-88
+
+Prior_Source_1: [4.17e-9, 1.02e-13, [[-73.9650, 40.7490, 100.0],[0.1]], [[
+  4.0e+7,   # 0:00-0:15 - Prior: 40M  
+  4.0e+7,   # 0:15-0:30 - Prior: 40M
+  4.0e+7,   # 0:30-0:45 - Prior: 40M
+  4.0e+7,   # 0:45-1:00 - Prior: 40M
+  4.0e+7,   # 1:00-1:15 - Prior: 40M
+  4.0e+7,   # 1:15-1:30 - Prior: 40M
+  4.0e+7,   # 1:30-1:45 - Prior: 40M
+  4.0e+7,   # 1:45-2:00 - Prior: 40M
+  4.0e+7,   # 2:00-2:15 - Prior: 40M
+  4.0e+7,   # 2:15-2:30 - Prior: 40M
+  4.0e+7,   # 2:30-2:45 - Prior: 40M
+  4.0e+7,   # 2:45-3:00 - Prior: 40M
+  4.0e+7,   # 3:00-3:15 - Prior: 40M
+  4.0e+7,   # 3:15-3:30 - Prior: 40M
+  4.0e+7,   # 3:30-3:45 - Prior: 40M
+  4.0e+7,   # 3:45-4:00 - Prior: 40M
+  4.0e+7,   # 4:00-4:15 - Prior: 40M
+  4.0e+7,   # 4:15-4:30 - Prior: 40M
+  4.0e+7,   # 4:30-4:45 - Prior: 40M
+  4.0e+7,   # 4:45-5:00 - Prior: 40M
+  4.0e+7,   # 5:00-5:15 - Prior: 40M
+  4.0e+7,   # 5:15-5:30 - Prior: 40M
+  4.0e+7,   # 5:30-5:45 - Prior: 40M
+  4.0e+7    # 5:45-6:00 - Prior: 40M
+  ],[0.1]], 'Co-60'] # Constant prior: 40M with very low std for tight control
+
+#(same) prior distribution of Sources [concentration, std., decay_constant]
+prior_source1 : [4.0e+7, 2.0e+6, 4.17e-9]  # Co-60 - Constant prior: 40M with very low 2M std
+
+# Boundary_same
+real_source1_boundary : [0.0, 1.0e+9] # Co-60

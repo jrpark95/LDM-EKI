@@ -1,0 +1,40 @@
+{
+  "simulation": {
+    "name": "LDM-EKI Coupled Simulation",
+    "version": "1.0.0",
+    "description": "Integrated LDM-EKI inversion system"
+  },
+  "ldm": {
+    "executable": "ldm/ldm",
+    "gpu_device": "0",
+    "port": 8080,
+    "timeout": 300,
+    "output_dir": "data/output/ldm_results"
+  },
+  "eki": {
+    "python_executable": "/opt/miniconda3/bin/python",
+    "main_script": "eki/src/RunEstimator.py",
+    "config_file": "eki/config/input_config",
+    "data_file": "eki/config/input_data",
+    "output_dir": "data/output/eki_results",
+    "tracking_enabled": true
+  },
+  "communication": {
+    "protocol": "socket",
+    "host": "127.0.0.1",
+    "port": 8080,
+    "retry_attempts": 3,
+    "retry_delay": 5
+  },
+  "logging": {
+    "level": "INFO",
+    "ldm_log": "logs/ldm_logs/ldm.log",
+    "eki_log": "logs/eki_logs/eki.log",
+    "integration_log": "logs/integration_logs/integration.log"
+  },
+  "performance": {
+    "monitor_memory": true,
+    "monitor_gpu": true,
+    "profiling_enabled": false
+  }
+}

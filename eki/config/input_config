@@ -1,0 +1,28 @@
+sample_ctrl: 100   # User requirement: 100 ensemble members
+nrepeat: 1           #sample = sample_ctrl ~ sample_ctr*nrepeat
+
+time: 1
+iteration: 5   # Quick test with fewer iterations
+Optimizer_order: ['EKI']
+
+#EKI Option
+perturb_option: 'Off'   # 'On_time', 'On_iter'  if EnRML, EnKF-MDA // 'Off' EnKF
+EnRML_step_length: 0.1  # Very small step size for stability
+EnKF_MDA_steps: 0.7
+REnKF_regularization: 'regularization.py'
+Adaptive_EKI: 'Off'
+Localized_EKI: 'Off'   # pxz is only valid when it is a square matrix
+Localization: 'centralized'
+Localization_weighting_factor: 1.0
+Regularization: 'On'
+REnKF_lambda: 0.9  # Very strong regularization to keep values in range
+Non_negative_Regularization: 'On'
+
+#Etc
+Elimination: 'Off'   # On or Off
+Elimination_condition: 1.0e+6
+Receptor_Increment: 'Off'
+
+GPU_ForwardPhysicsModel: 'On'  # PyCUDA
+GPU_InverseModel: 'On'   #CuPy & Ensemble parallelization
+nGPU: 2
