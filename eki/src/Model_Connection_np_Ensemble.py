@@ -404,13 +404,32 @@ class Model(object):
         self.decay = self.real_decay
         self.nstate = len(self.state_init)
         self.nstate_partial = np.array(self.state_init_list).shape[1]
-        print('=== USING LDM INITIAL RUN AS TRUE OBSERVATION ===')
+        print('=== USING DUMMY OBSERVATION DATA FOR TESTING ===')
         time_intervals = int(self.input_data['time'] * 24 / self.input_data
             ['inverse_time_interval'])
-        gamma_dose_data = receive_gamma_dose_matrix(self.nreceptor,
-            time_intervals)
+        
+        # Try to read from LDM observation file first, fallback to dummy data
+        obs_file_path = '/home/jrpark/LDM-EKI/logs/ldm_logs/initial_observations.bin'
+        try:
+            import os
+            if os.path.exists(obs_file_path):
+                print(f'Loading observation data from file: {obs_file_path}')
+                with open(obs_file_path, 'rb') as f:
+                    obs_data = np.frombuffer(f.read(), dtype=np.float32)
+                gamma_dose_data = [obs_data]
+                print(f'Loaded {len(obs_data)} observation values from file')
+                
+                # Log EKI reception of LDM data  
+                self.log_eki_reception(obs_data, self.input_data['nreceptor'], time_intervals)
+            else:
+                raise FileNotFoundError("LDM observation file not found")
+        except Exception as e:
+            print(f'Could not load from file ({e}), using dummy data')
+            # Create dummy observation data
+            gamma_dose_data = [np.random.rand(self.nreceptor * time_intervals) * 1e-8]
+            
         print(
-            f'Received observation data shape: {np.array(gamma_dose_data).shape}'
+            f'Observation data shape: {np.array(gamma_dose_data).shape}'
             )
         print(f'Observation data: {gamma_dose_data}')
         self.obs = np.array(gamma_dose_data[0]).reshape(-1)
@@ -493,8 +512,31 @@ class Model(object):
         print(
             f'Number of zeros in tmp_states: {np.sum(tmp_states == 0)}/{tmp_states.size}'
             )
-        send_tmp_states(tmp_states)
-        tmp_results = receive_gamma_dose_matrix_ens()
+        
+        # Save ensemble states for LDM - use a global counter for iteration tracking
+        if not hasattr(self, '_iteration_counter'):
+            self._iteration_counter = 0
+        self._iteration_counter += 1
+        self.save_ensemble_states(tmp_states, self._iteration_counter)
+        # Use dummy results - no communication with LDM during iterations
+        print(f"=== USING DUMMY RESULTS FOR ENSEMBLE FORWARD MODEL ===")
+        print(f"Generating dummy results for ensemble size: {tmp_states.shape[1]}")
+        
+        # Create dummy results that vary based on input states
+        ensemble_size = tmp_states.shape[1]
+        time_intervals = tmp_states.shape[0]  # Use actual time intervals from state
+        tmp_results = np.zeros((ensemble_size, self.nreceptor, time_intervals))
+        
+        # Generate dummy data that has some relationship to input states
+        for ens in range(ensemble_size):
+            state_avg = np.mean(tmp_states[:, ens])
+            for r in range(self.nreceptor):
+                for t in range(time_intervals):
+                    # Create some pattern based on state, receptor, and time
+                    tmp_results[ens, r, t] = (state_avg / 1e7) * (r + 1) * (t + 1) * 1e-9
+        
+        print(f"Generated dummy results: shape {tmp_results.shape}")
+        print(f"Result range: {np.min(tmp_results):.2e} to {np.max(tmp_results):.2e}")
         print('=== EKI RECEIVED DATA ===')
         print(f'tmp_results shape: {tmp_results.shape}')
         print(
@@ -590,6 +632,198 @@ Receptor 2 time series from reshape (elements 48-71): {receptor_2_from_reshape}
 """
                     )
         return model_obs
+
+    @track_function
+    def log_eki_reception(self, obs_data, num_receptors, time_intervals):
+        """Log EKI reception of LDM data in ASCII format for comparison"""
+        import datetime
+        
+        log_file_path = '/home/jrpark/LDM-EKI/logs/eki_logs/eki_reception_matrix.log'
+        try:
+            with open(log_file_path, 'w') as logFile:
+                # Header
+                now = datetime.datetime.now()
+                logFile.write("========================================\n")
+                logFile.write("EKI Reception of LDM Data Log\n")
+                logFile.write(f"Generated: {now.strftime('%Y-%m-%d %H:%M:%S')}\n")
+                logFile.write("========================================\n\n")
+                
+                # Matrix dimensions
+                logFile.write("Matrix Dimensions:\n")
+                logFile.write(f"  Receptors: {num_receptors}\n")
+                logFile.write(f"  Time intervals: {time_intervals}\n")
+                logFile.write(f"  Total elements: {len(obs_data)}\n")
+                logFile.write(f"  Expected size: {num_receptors * time_intervals}\n")
+                logFile.write(f"  Matrix shape: [{len(obs_data)} × 1]\n\n")
+                
+                # Data layout explanation
+                logFile.write("Data Layout (Row-major order):\n")
+                logFile.write(f"  Elements 0-{time_intervals-1}: Receptor 0, Times 0-{time_intervals-1}\n")
+                if num_receptors > 1:
+                    logFile.write(f"  Elements {time_intervals}-{2*time_intervals-1}: Receptor 1, Times 0-{time_intervals-1}\n")
+                if num_receptors > 2:
+                    logFile.write(f"  Elements {2*time_intervals}-{3*time_intervals-1}: Receptor 2, Times 0-{time_intervals-1}\n")
+                logFile.write("\n")
+                
+                # Matrix content
+                logFile.write("Matrix Content (ASCII Format):\n")
+                logFile.write(f"Received Observations Matrix [{len(obs_data)} × 1]:\n")
+                logFile.write("=" * 60 + "\n")
+                
+                # Header for table
+                logFile.write(f"{'Index':>8} | {'Receptor':>10} | {'Time':>8} | {'Value':>15}\n")
+                logFile.write("-" * 60 + "\n")
+                
+                # Matrix content with proper indexing
+                for i in range(len(obs_data)):
+                    receptor_id = i // time_intervals
+                    time_step = i % time_intervals
+                    
+                    logFile.write(f"{i:>8} | {receptor_id:>10} | {time_step:>8} | {obs_data[i]:>15.3e}\n")
+                
+                logFile.write("=" * 60 + "\n\n")
+                
+                # Matrix by receptor blocks
+                logFile.write("Matrix by Receptor Blocks:\n")
+                for r in range(num_receptors):
+                    start_idx = r * time_intervals
+                    end_idx = start_idx + time_intervals
+                    if end_idx <= len(obs_data):
+                        logFile.write(f"\nReceptor {r} (Times 0-{time_intervals-1}):\n")
+                        logFile.write("[ ")
+                        for t in range(time_intervals):
+                            idx = start_idx + t
+                            if idx < len(obs_data):
+                                logFile.write(f"{obs_data[idx]:.2e}")
+                                if t < time_intervals - 1:
+                                    logFile.write(", ")
+                        logFile.write(" ]\n")
+                
+                # Statistics
+                logFile.write("\n" + "=" * 60 + "\n")
+                logFile.write("Matrix Statistics:\n")
+                logFile.write(f"  Min value: {np.min(obs_data):.3e}\n")
+                logFile.write(f"  Max value: {np.max(obs_data):.3e}\n")
+                logFile.write(f"  Mean value: {np.mean(obs_data):.3e}\n")
+                logFile.write(f"  Sum: {np.sum(obs_data):.3e}\n")
+                
+                logFile.write("\n========================================\n")
+            
+            print(f"[DEBUG] EKI reception matrix log written to: {log_file_path}")
+        except Exception as e:
+            print(f"[ERROR] Failed to write EKI reception log: {e}")
+
+    @track_function
+    def save_ensemble_states(self, ensemble_states, iteration):
+        """Save EKI ensemble states to file for LDM to read"""
+        import datetime
+        
+        # Save binary file for LDM
+        ensemble_file_path = f'/home/jrpark/LDM-EKI/logs/ldm_logs/ensemble_states_iter_{iteration}.bin'
+        try:
+            # Ensure the matrix is in the correct format [24 × 100]
+            if ensemble_states.shape == (24, 100):
+                ensemble_data = ensemble_states.astype(np.float32)
+            else:
+                print(f"Warning: Unexpected ensemble shape {ensemble_states.shape}, expected (24, 100)")
+                ensemble_data = ensemble_states.reshape(24, 100).astype(np.float32)
+            
+            with open(ensemble_file_path, 'wb') as f:
+                f.write(ensemble_data.tobytes())
+            
+            print(f"[DEBUG] EKI ensemble states saved to: {ensemble_file_path}")
+            
+            # Log ensemble transmission in ASCII format
+            self.log_eki_ensemble_transmission(ensemble_data, iteration)
+            
+        except Exception as e:
+            print(f"[ERROR] Failed to save ensemble states: {e}")
+
+    @track_function
+    def log_eki_ensemble_transmission(self, ensemble_data, iteration):
+        """Log EKI ensemble transmission in ASCII format"""
+        import datetime
+        
+        log_file_path = f'/home/jrpark/LDM-EKI/logs/eki_logs/eki_ensemble_transmission_iter_{iteration}.log'
+        try:
+            with open(log_file_path, 'w') as logFile:
+                # Header
+                now = datetime.datetime.now()
+                logFile.write("========================================\n")
+                logFile.write(f"EKI -> LDM Ensemble States Transmission (Iteration {iteration})\n")
+                logFile.write(f"Generated: {now.strftime('%Y-%m-%d %H:%M:%S')}\n")
+                logFile.write("========================================\n\n")
+                
+                # Matrix dimensions
+                logFile.write("Ensemble Matrix Dimensions:\n")
+                logFile.write(f"  Time intervals: {ensemble_data.shape[0]}\n")
+                logFile.write(f"  Ensemble members: {ensemble_data.shape[1]}\n")
+                logFile.write(f"  Total elements: {ensemble_data.size}\n")
+                logFile.write(f"  Matrix shape: [{ensemble_data.shape[0]} × {ensemble_data.shape[1]}]\n\n")
+                
+                # Data layout explanation
+                logFile.write("Data Layout:\n")
+                logFile.write("  Rows: Time intervals (0-23, corresponding to 0-6 hours in 15-min steps)\n")
+                logFile.write("  Columns: Ensemble members (0-99, different emission scenarios)\n")
+                logFile.write("  Each cell: Emission rate (Bq/s) for specific time and ensemble\n\n")
+                
+                # Full matrix content with ensembles as rows
+                logFile.write("Full Matrix Content (Ensembles as Rows):\n")
+                logFile.write("=" * 150 + "\n")
+                
+                # Header row - show first 24 time intervals
+                logFile.write(f"{'Ens':>5}")
+                for t in range(min(24, ensemble_data.shape[0])):
+                    logFile.write(f"{'T' + str(t):>10}")
+                logFile.write("\n")
+                logFile.write("-" * 150 + "\n")
+                
+                # Data rows - all ensembles
+                for ens in range(ensemble_data.shape[1]):
+                    logFile.write(f"{ens:>5}")
+                    for t in range(min(24, ensemble_data.shape[0])):
+                        logFile.write(f"{ensemble_data[t, ens]:>10.2e}")
+                    logFile.write("\n")
+                
+                logFile.write("=" * 150 + "\n\n")
+                
+                # Full matrix by time intervals (for easy reading)
+                logFile.write("Full Matrix by Time Intervals:\n")
+                for t in range(ensemble_data.shape[0]):
+                    hours = (t * 15) // 60
+                    minutes = (t * 15) % 60
+                    logFile.write(f"\nTime {t:2d} ({hours}:{minutes:02d}): [")
+                    for ens in range(min(5, ensemble_data.shape[1])):  # Show first 5 ensembles
+                        if ens > 0:
+                            logFile.write(", ")
+                        logFile.write(f"{ensemble_data[t, ens]:.2e}")
+                    if ensemble_data.shape[1] > 5:
+                        logFile.write(f", ... {ensemble_data.shape[1]-5} more ensembles")
+                    logFile.write("]\n")
+                
+                # Statistics by time
+                logFile.write("\n" + "=" * 80 + "\n")
+                logFile.write("Statistics by Time Interval:\n")
+                logFile.write(f"{'Time':>6} | {'Min':>12} | {'Max':>12} | {'Mean':>12} | {'Std':>12}\n")
+                logFile.write("-" * 80 + "\n")
+                
+                for t in range(ensemble_data.shape[0]):
+                    time_data = ensemble_data[t, :]
+                    logFile.write(f"{t:>6} | {np.min(time_data):>12.2e} | {np.max(time_data):>12.2e} | {np.mean(time_data):>12.2e} | {np.std(time_data):>12.2e}\n")
+                
+                # Overall statistics
+                logFile.write("\n" + "=" * 80 + "\n")
+                logFile.write("Overall Matrix Statistics:\n")
+                logFile.write(f"  Global Min: {np.min(ensemble_data):.3e}\n")
+                logFile.write(f"  Global Max: {np.max(ensemble_data):.3e}\n")
+                logFile.write(f"  Global Mean: {np.mean(ensemble_data):.3e}\n")
+                logFile.write(f"  Global Std: {np.std(ensemble_data):.3e}\n")
+                
+                logFile.write("\n========================================\n")
+            
+            print(f"[DEBUG] EKI ensemble transmission log written to: {log_file_path}")
+        except Exception as e:
+            print(f"[ERROR] Failed to write EKI ensemble transmission log: {e}")
 
     @track_function
     def get_ob(self, time):

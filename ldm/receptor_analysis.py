@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Receptor-based Particle Analysis
-Analyzes particles within 0.1 degree radius of each receptor over time
+Analyzes particles within 10.0 degree radius of each receptor over time
 """
 
 import pandas as pd
@@ -16,25 +16,25 @@ def calculate_distance(lat1, lon1, lat2, lon2):
 
 def load_particle_data(logs_dir="../logs/ldm_logs"):
     """Load particle position data from CSV files"""
-    particle_files = glob.glob(os.path.join(logs_dir, "particles_hour_*.csv"))
+    particle_files = glob.glob(os.path.join(logs_dir, "particles_15min_*.csv"))
     particle_data = {}
     
     for file in sorted(particle_files):
         filename = os.path.basename(file)
-        hour = int(filename.split('_')[2].split('.')[0])
+        quarter_hour = int(filename.split('_')[2].split('.')[0])
         
         try:
             df = pd.read_csv(file)
             if not df.empty:
-                particle_data[hour] = df
-                print(f"Loaded {len(df)} particles for hour {hour}")
+                particle_data[quarter_hour] = df
+                print(f"Loaded {len(df)} particles for 15-min interval {quarter_hour}")
         except Exception as e:
             print(f"Error loading {file}: {e}")
     
     return particle_data
 
 def analyze_receptor_measurements(particle_data, output_dir="../logs/ldm_logs"):
-    """Analyze particles within 0.1 degree radius of each receptor"""
+    """Analyze particles within 10.0 degree radius of each receptor"""
     
     # Receptor locations (from EKI config)
     receptors = [
@@ -43,18 +43,18 @@ def analyze_receptor_measurements(particle_data, output_dir="../logs/ldm_logs"):
         {"id": 3, "lat": 40.7490, "lon": -74.02, "name": "Receptor 3"}
     ]
     
-    radius = 0.1  # 0.1 degree radius
+    radius = 10.0  # 10.0 degree radius - capture all particles
     
     # Store results for each receptor
     receptor_results = {r["id"]: {"times": [], "particle_counts": [], "total_concentration": [], "avg_concentration": []} 
                        for r in receptors}
     
-    # Analyze each hour
-    for hour, df in sorted(particle_data.items()):
+    # Analyze each 15-minute interval
+    for quarter_hour, df in sorted(particle_data.items()):
         if df.empty:
             continue
             
-        print(f"Analyzing hour {hour}...")
+        print(f"Analyzing 15-min interval {quarter_hour}...")
         
         for receptor in receptors:
             rec_lat, rec_lon = receptor["lat"], receptor["lon"]
@@ -72,8 +72,9 @@ def analyze_receptor_measurements(particle_data, output_dir="../logs/ldm_logs"):
             total_conc = particles_in_range['concentration'].sum() if particle_count > 0 else 0
             avg_conc = particles_in_range['concentration'].mean() if particle_count > 0 else 0
             
-            # Store results
-            receptor_results[rec_id]["times"].append(hour)
+            # Store results (convert to hours for plotting)
+            time_in_hours = quarter_hour * 0.25
+            receptor_results[rec_id]["times"].append(time_in_hours)
             receptor_results[rec_id]["particle_counts"].append(particle_count)
             receptor_results[rec_id]["total_concentration"].append(total_conc)
             receptor_results[rec_id]["avg_concentration"].append(avg_conc)
@@ -102,11 +103,11 @@ def create_receptor_plots(receptor_results, receptors, output_dir="../logs/ldm_l
                 label=f'{receptor["name"]} (Lon: {receptor["lon"]})')
     
     ax1.set_xlabel('Time (hours)', fontsize=12)
-    ax1.set_ylabel('Particle Count (within 0.1° radius)', fontsize=12)
+    ax1.set_ylabel('Particle Count (within 10° radius)', fontsize=12)
     ax1.set_title('Particle Count at Receptors Over Time', fontsize=14, fontweight='bold')
     ax1.legend()
     ax1.grid(True, alpha=0.3)
-    ax1.set_xticks(range(1, 7))
+    ax1.set_xticks(np.arange(0, 6.25, 0.25))
     
     # Plot 2: Total concentration over time
     for i, receptor in enumerate(receptors):
@@ -122,7 +123,7 @@ def create_receptor_plots(receptor_results, receptors, output_dir="../logs/ldm_l
     ax2.set_title('Total Concentration at Receptors Over Time', fontsize=14, fontweight='bold')
     ax2.legend()
     ax2.grid(True, alpha=0.3)
-    ax2.set_xticks(range(1, 7))
+    ax2.set_xticks(np.arange(0, 6.25, 0.25))
     
     # Plot 3: Average concentration over time
     for i, receptor in enumerate(receptors):
@@ -144,7 +145,7 @@ def create_receptor_plots(receptor_results, receptors, output_dir="../logs/ldm_l
     ax3.set_title('Average Concentration at Receptors Over Time', fontsize=14, fontweight='bold')
     ax3.legend()
     ax3.grid(True, alpha=0.3)
-    ax3.set_xticks(range(1, 7))
+    ax3.set_xticks(np.arange(0, 6.25, 0.25))
     
     # Plot 4: Cumulative particle detection
     for i, receptor in enumerate(receptors):
@@ -161,7 +162,7 @@ def create_receptor_plots(receptor_results, receptors, output_dir="../logs/ldm_l
     ax4.set_title('Cumulative Particle Detection at Receptors', fontsize=14, fontweight='bold')
     ax4.legend()
     ax4.grid(True, alpha=0.3)
-    ax4.set_xticks(range(1, 7))
+    ax4.set_xticks(np.arange(0, 6.25, 0.25))
     
     plt.tight_layout()
     
@@ -213,7 +214,7 @@ def create_summary_table(receptor_results, receptors, output_dir):
 def main():
     """Main function"""
     print("Starting receptor-based particle analysis...")
-    print("Analyzing particles within 0.1 degree radius of each receptor")
+    print("Analyzing particles within 10.0 degree radius of each receptor (capturing all particles)")
     
     # Load data
     logs_dir = "../logs/ldm_logs"

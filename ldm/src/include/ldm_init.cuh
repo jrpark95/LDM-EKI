@@ -393,9 +393,9 @@ void LDM::updateGPUParticleMemory() {
 }
 
 void LDM::logParticlePositionsForVisualization(int timestep, float currentTime) {
-    // Log every hour (3600 seconds)
-    if (fmod(currentTime, 3600.0f) < dt) {
-        int hour = (int)(currentTime / 3600.0f);
+    // Log every 15 minutes (900 seconds)
+    if (fmod(currentTime, 900.0f) < dt) {
+        int quarter_hour = (int)(currentTime / 900.0f);
         
         // Copy particle data from GPU to CPU (only nop particles)
         std::vector<LDMpart> cpu_particles(nop);
@@ -413,7 +413,7 @@ void LDM::logParticlePositionsForVisualization(int timestep, float currentTime) 
         }
         
         // Create filename
-        std::string filename = "../logs/ldm_logs/particles_hour_" + std::to_string(hour) + ".csv";
+        std::string filename = "../logs/ldm_logs/particles_15min_" + std::to_string(quarter_hour) + ".csv";
         std::ofstream file(filename);
         
         if (!file.is_open()) {
@@ -447,8 +447,8 @@ void LDM::logParticlePositionsForVisualization(int timestep, float currentTime) 
         }
         
         file.close();
-        std::cout << "[VISUAL] Logged " << active_particles << " active particles at hour " 
-                  << hour << " (t=" << currentTime << "s) to " << filename << std::endl;
+        std::cout << "[VISUAL] Logged " << active_particles << " active particles at 15-min interval " 
+                  << quarter_hour << " (t=" << currentTime << "s) to " << filename << std::endl;
     }
     
     // Also save final state at simulation end for complete dataset
