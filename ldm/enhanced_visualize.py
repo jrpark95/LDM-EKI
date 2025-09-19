@@ -180,9 +180,9 @@ def create_animation_frames(particle_data, output_dir="../logs/ldm_logs"):
     """Create individual frames for potential animation"""
     os.makedirs(output_dir, exist_ok=True)
     
-    # Common settings for all frames
-    lon_min, lon_max = -74.3, -73.7
-    lat_min, lat_max = 40.4, 41.0
+    # Common settings for all frames (zoomed out)
+    lon_min, lon_max = -75.0, -73.0
+    lat_min, lat_max = 40.0, 41.5
     
     # Find global concentration range for consistent coloring
     all_concentrations = []
@@ -232,20 +232,18 @@ def create_animation_frames(particle_data, output_dir="../logs/ldm_logs"):
                     label='Receptors' if i == 0 else '', 
                     markeredgecolor='black', markeredgewidth=1)
         
-        # Add geographic context
-        manhattan_lons = [-73.93, -74.02, -74.02, -73.93, -73.93]
-        manhattan_lats = [40.70, 40.70, 40.83, 40.83, 40.70]
-        plt.plot(manhattan_lons, manhattan_lats, 'k--', alpha=0.7, linewidth=2, label='Manhattan Approx.')
-        
         plt.xlim(lon_min, lon_max)
         plt.ylim(lat_min, lat_max)
-        plt.xlabel('Longitude (degrees)', fontsize=14)
-        plt.ylabel('Latitude (degrees)', fontsize=14)
+        plt.xlabel('Longitude', fontsize=14)
+        plt.ylabel('Latitude', fontsize=14)
         plt.title(f'Particle Dispersion - Hour {hour}\n'
                  f'{len(df_region)} active particles | Time: {hour}:00', 
                  fontsize=16, fontweight='bold')
+        
+        # Simple clean grid
+        plt.grid(True, alpha=0.3, linestyle='-', linewidth=0.5)
+        
         plt.legend(loc='upper right', fontsize=12)
-        plt.grid(True, alpha=0.3)
         
         # Add timestamp
         plt.text(0.02, 0.98, f'Hour {hour}', transform=plt.gca().transAxes, 
@@ -282,6 +280,29 @@ def main():
     
     print("Enhanced visualization complete!")
     print(f"Check {logs_dir}/ for generated plots.")
+
+def create_animation_frames_only():
+    """Create only animation frames without other plots"""
+    import os
+    import glob
+    
+    logs_dir = "../logs/ldm_logs"
+    
+    # Load particle data
+    particle_data = load_particle_data(logs_dir)
+    
+    if not particle_data:
+        print("No particle data found!")
+        return
+    
+    print(f"Found particle data for {len(particle_data)} hours")
+    
+    # Create only animation frames with zoomed out view
+    print("Creating animation frames...")
+    create_animation_frames(particle_data, logs_dir)
+    
+    print("Animation frames created successfully!")
+    print(f"Check {logs_dir}/ for animation_frame_*.png files.")
 
 if __name__ == "__main__":
     main()
