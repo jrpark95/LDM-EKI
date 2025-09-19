@@ -72,6 +72,15 @@ int main(int argc, char** argv) {
     
     ldm.loadFlexHeightData();    // Load height data FIRST
     ldm.initializeFlexGFSData(); // Then calculate DRHO using height data
+    // Clean log directory before starting simulation
+    std::cout << "[INFO] Cleaning log directory..." << std::endl;
+    int clean_result = system("rm -f /home/jrpark/LDM-EKI/logs/ldm_logs/*.csv /home/jrpark/LDM-EKI/logs/ldm_logs/*.txt /home/jrpark/LDM-EKI/logs/ldm_logs/*.png");
+    if (clean_result == 0) {
+        std::cout << "[INFO] Log directory cleaned successfully" << std::endl;
+    } else {
+        std::cout << "[WARNING] Failed to clean log directory" << std::endl;
+    }
+
     ldm.allocateGPUMemory();
 
     ldm.startTimer();

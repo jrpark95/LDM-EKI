@@ -152,7 +152,7 @@ void LDM::runSimulation(){
         static size_t last_particle_count = part.size();
         
         if (currentTime - last_emission_time >= 900.0f) {  // Every 15 minutes (900 seconds)
-            releaseParticlesForCurrentTime(currentTime);
+            //releaseParticlesForCurrentTime(currentTime);
             last_emission_time = currentTime;
             
             // Update GPU memory if new particles were added
@@ -164,7 +164,7 @@ void LDM::runSimulation(){
         }
         
         // Update particle concentrations based on EKI time series
-        updateParticleConcentrationsFromEKI(currentTime);
+        // updateParticleConcentrationsFromEKI(currentTime);
 
         activationRatio = (currentTime) / time_end;
         t0 = (currentTime - static_cast<int>((currentTime-1e-5)/time_interval)*time_interval) / time_interval;
