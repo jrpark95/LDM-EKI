@@ -92,15 +92,11 @@ public:
     float real_source1_boundary_min;
     float real_source1_boundary_max;
     
-    // Input config parameters
-    int sample_ctrl;  // ensemble size
-    int iteration;    // number of iterations
-    
     EKIConfig() : num_receptors(0), nsource(0), time_day(0), time_interval_min(0), 
                   inverse_time_interval_hour(0), ave_t(0), size_alt(0), size_lat(0), size_lon(0),
                   alt_spacing(0), lat_spacing(0), lon_spacing(0), size_alt_wind(0), size_lat_wind(0),
                   size_lon_wind(0), wind_constant_value_x(0), wind_constant_value_y(0), wind_constant_value_z(0),
-                  wind_grid_interval(0), grid_space_size_lat(0), grid_space_size_lon(0), sample_ctrl(0), iteration(0),
+                  wind_grid_interval(0), grid_space_size_lat(0), grid_space_size_lon(0),
                   puff_concentration_threshold(0), R_max(0), nreceptor_err(0), nreceptor_MDA(0),
                   prior_source1_concentration(0), prior_source1_std(0), prior_source1_decay_constant(0),
                   real_source1_boundary_min(0), real_source1_boundary_max(0) {}
@@ -113,7 +109,6 @@ public:
     }
     
     bool loadFromFile(const std::string& filename);
-    bool loadInputConfigFromFile(const std::string& input_config_filename);
     
     // Accessor methods
     int getNumReceptors() const { return num_receptors; }

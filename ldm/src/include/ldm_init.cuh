@@ -450,6 +450,62 @@ void LDM::logParticlePositionsForVisualization(int timestep, float currentTime) 
         std::cout << "[VISUAL] Logged " << active_particles << " active particles at hour " 
                   << hour << " (t=" << currentTime << "s) to " << filename << std::endl;
     }
+    
+    // Also save final state at simulation end for complete dataset
+    if (currentTime >= (time_end - dt)) {
+        // Copy particle data from GPU to CPU (only nop particles)
+        std::vector<LDMpart> cpu_particles(nop);
+        if (d_part != nullptr) {
+            cudaError_t err = cudaMemcpy(cpu_particles.data(), d_part, 
+                                       nop * sizeof(LDMpart), 
+                                       cudaMemcpyDeviceToHost);
+            if (err != cudaSuccess) {
+                std::cerr << "[ERROR] Failed to copy particle data from GPU: " << cudaGetErrorString(err) << std::endl;
+                return;
+            }
+        } else {
+            // Use only the first nop particles from CPU data
+            cpu_particles.assign(part.begin(), part.begin() + std::min((size_t)nop, part.size()));
+        }
+        
+        // Create final filename
+        std::string filename = "../logs/ldm_logs/particles_final.csv";
+        std::ofstream file(filename);
+        
+        if (!file.is_open()) {
+            std::cerr << "[ERROR] Cannot create final particle file: " << filename << std::endl;
+            return;
+        }
+        
+        // Write CSV header
+        file << "particle_id,longitude,latitude,altitude,concentration,age,flag" << std::endl;
+        
+        // Write particle data
+        int active_particles = 0;
+        for (size_t i = 0; i < cpu_particles.size(); i++) {
+            const LDMpart& p = cpu_particles[i];
+            
+            if (p.flag == 1) { // Only active particles
+                // Convert from grid coordinates to geographic coordinates
+                float lon = p.x * 0.5f - 179.0f;
+                float lat = p.y * 0.5f - 90.0f;
+                float alt = p.z;
+                
+                file << i << "," 
+                     << std::fixed << std::setprecision(6) << lon << ","
+                     << std::fixed << std::setprecision(6) << lat << ","
+                     << std::fixed << std::setprecision(2) << alt << ","
+                     << std::scientific << std::setprecision(3) << p.conc << ","
+                     << std::fixed << std::setprecision(1) << p.age << ","
+                     << p.flag << std::endl;
+                active_particles++;
+            }
+        }
+        
+        file.close();
+        std::cout << "[FINAL] Logged " << active_particles << " active particles at simulation end"
+                  << " (t=" << currentTime << "s) to " << filename << std::endl;
+    }
 }
 
 void LDM::logParticleCountData(int timestep, float currentTime) {

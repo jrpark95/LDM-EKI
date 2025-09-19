@@ -226,59 +226,137 @@ def create_individual_osm_frames(particle_data, output_dir="../logs/ldm_logs"):
         print(f"Saved OSM frame for hour {hour}: {filename}")
 
 def create_receptor_concentration_plot(particle_data, output_dir="../logs/ldm_logs"):
-    """Create time series plot of receptor concentrations"""
-    receptor_coords = [(-73.98, 40.7490), (-74.00, 40.7490), (-74.02, 40.7490)]
-    receptor_names = ['Receptor 1', 'Receptor 2', 'Receptor 3']
+    """Create time series plot of receptor concentrations using LDM calculated data"""
+    # Try to load LDM detailed 15-minute interval data first
+    detailed_file = os.path.join(output_dir, 'receptor_concentrations.csv')
+    hourly_file = os.path.join(output_dir, 'receptor_summary.csv')
     
-    # Calculate concentration at each receptor for each hour
-    receptor_concentrations = {name: [] for name in receptor_names}
-    hours = []
-    
-    for hour in sorted(particle_data.keys()):
-        df = particle_data[hour]
-        hours.append(hour)
+    if os.path.exists(detailed_file):
+        # Use LDM calculated detailed 15-minute data
+        df_receptors = pd.read_csv(detailed_file)
         
-        for i, (rec_lon, rec_lat) in enumerate(receptor_coords):
-            # Find particles within 10 degrees of receptor (much wider range)
-            distance_threshold = 10.0
-            mask = ((np.abs(df['longitude'] - rec_lon) <= distance_threshold) & 
-                   (np.abs(df['latitude'] - rec_lat) <= distance_threshold))
+        receptor_names = ['Receptor 1', 'Receptor 2', 'Receptor 3']
+        colors = ['blue', 'red', 'green']
+        
+        plt.figure(figsize=(14, 8))
+        
+        for r in range(3):  # 3 receptors
+            receptor_data = df_receptors[df_receptors['receptor'] == r]
+            time_hours = receptor_data['time_hours'].values
+            concentrations = receptor_data['concentration'].values
             
-            nearby_particles = df[mask]
-            if len(nearby_particles) > 0:
-                # Average concentration of nearby particles
-                avg_concentration = nearby_particles['concentration'].mean()
-            else:
-                avg_concentration = 0.0
+            plt.plot(time_hours, concentrations, marker='o', linewidth=2, 
+                    markersize=6, color=colors[r], label=receptor_names[r])
+        
+        plt.xlabel('Time (hours)', fontsize=14)
+        plt.ylabel('Concentration (Bq)', fontsize=14)
+        plt.title('Receptor Concentration Time Series (15-minute intervals)\\nNYC Particle Dispersion Monitoring\\n(LDM Calculated Data)', 
+                  fontsize=16, fontweight='bold')
+        
+        # Set x-axis ticks every hour but show 15-minute data
+        plt.xticks(np.arange(0.25, 6.25, 1.0), [f'{i}:00' for i in range(1, 7)])
+        plt.xlim(0, 6.25)
+        
+        # Add note about data source
+        plt.text(0.02, 0.98, 'Data Source: LDM calculated concentrations\\n' +
+                 'Time resolution: 15-minute intervals\\n' +
+                 'Detection radius: ~1km (0.01°)\\n' +
+                 'Same data used for EKI inversion',
+                 transform=plt.gca().transAxes, fontsize=10,
+                 bbox=dict(boxstyle='round', facecolor='lightgreen', alpha=0.8),
+                 verticalalignment='top')
+        
+        print(f"Used LDM calculated detailed receptor data from {detailed_file}")
+        
+    elif os.path.exists(hourly_file):
+        # Fallback to hourly data
+        df_receptors = pd.read_csv(hourly_file)
+        
+        receptor_names = ['Receptor 1', 'Receptor 2', 'Receptor 3']
+        colors = ['blue', 'red', 'green']
+        
+        plt.figure(figsize=(12, 8))
+        
+        for r in range(3):  # 3 receptors
+            receptor_data = df_receptors[df_receptors['receptor'] == r]
+            hours = receptor_data['hour'].values
+            concentrations = receptor_data['concentration'].values
             
-            receptor_concentrations[receptor_names[i]].append(avg_concentration)
+            plt.plot(hours, concentrations, marker='o', linewidth=2, 
+                    markersize=8, color=colors[r], label=receptor_names[r])
+        
+        plt.xlabel('Time (hours)', fontsize=14)
+        plt.ylabel('Concentration (Bq)', fontsize=14)
+        plt.title('Receptor Concentration Time Series (hourly summary)\\nNYC Particle Dispersion Monitoring\\n(LDM Calculated Data)', 
+                  fontsize=16, fontweight='bold')
+        
+        # Add note about data source
+        plt.text(0.02, 0.98, 'Data Source: LDM calculated concentrations\\n' +
+                 'Time resolution: Hourly summary\\n' +
+                 'Detection radius: ~1km (0.01°)\\n' +
+                 'Same data used for EKI inversion',
+                 transform=plt.gca().transAxes, fontsize=10,
+                 bbox=dict(boxstyle='round', facecolor='lightblue', alpha=0.8),
+                 verticalalignment='top')
+        
+        print(f"Used LDM calculated hourly receptor data from {hourly_file}")
+        
+    else:
+        # Fallback: calculate from particle data (old method - for comparison)
+        print(f"Warning: LDM receptor data not found at {receptor_file}")
+        print("Using fallback calculation from particle data...")
+        
+        receptor_coords = [(-73.98, 40.7490), (-74.00, 40.7490), (-74.02, 40.7490)]
+        receptor_names = ['Receptor 1', 'Receptor 2', 'Receptor 3']
+        
+        receptor_concentrations = {name: [] for name in receptor_names}
+        hours = []
+        
+        for hour in sorted(particle_data.keys()):
+            df = particle_data[hour]
+            hours.append(hour)
+            
+            for i, (rec_lon, rec_lat) in enumerate(receptor_coords):
+                # Use same detection radius as LDM (0.01 degrees)
+                distance_threshold = 0.01
+                dist_lat = np.abs(df['latitude'] - rec_lat)
+                dist_lon = np.abs(df['longitude'] - rec_lon)
+                distance = np.sqrt(dist_lat**2 + dist_lon**2)
+                
+                nearby_particles = df[distance <= distance_threshold]
+                if len(nearby_particles) > 0:
+                    # Sum concentration (same as LDM method)
+                    total_concentration = nearby_particles['concentration'].sum()
+                else:
+                    total_concentration = 0.0
+                
+                receptor_concentrations[receptor_names[i]].append(total_concentration)
+        
+        plt.figure(figsize=(12, 8))
+        colors = ['blue', 'red', 'green']
+        
+        for i, (name, concentrations) in enumerate(receptor_concentrations.items()):
+            plt.plot(hours, concentrations, marker='o', linewidth=2, 
+                    markersize=8, color=colors[i], label=name)
+        
+        plt.xlabel('Time (hours)', fontsize=14)
+        plt.ylabel('Concentration (Bq)', fontsize=14)
+        plt.title('Receptor Concentration Time Series\\nNYC Particle Dispersion Monitoring\\n(Fallback Calculation)', 
+                  fontsize=16, fontweight='bold')
+        
+        # Add note about fallback method
+        plt.text(0.02, 0.98, 'Data Source: Fallback particle calculation\\n' +
+                 'Detection radius: ~1km (0.01°)\\n' +
+                 'Method: Sum particles within radius',
+                 transform=plt.gca().transAxes, fontsize=10,
+                 bbox=dict(boxstyle='round', facecolor='lightyellow', alpha=0.8),
+                 verticalalignment='top')
+        
+        # Set integer ticks for hours
+        plt.xticks(hours)
     
-    # Create the plot
-    plt.figure(figsize=(12, 8))
-    colors = ['blue', 'red', 'green']
-    
-    for i, (name, concentrations) in enumerate(receptor_concentrations.items()):
-        plt.plot(hours, concentrations, marker='o', linewidth=2, 
-                markersize=8, color=colors[i], label=name)
-    
-    plt.xlabel('Time (hours)', fontsize=14)
-    plt.ylabel('Concentration (Bq)', fontsize=14)
-    plt.title('Receptor Concentration Time Series\\nNYC Particle Dispersion Monitoring', 
-              fontsize=16, fontweight='bold')
     plt.grid(True, alpha=0.3)
     plt.legend(fontsize=12)
-    
-    # Set integer ticks for hours
-    plt.xticks(hours)
-    
-    # Add annotations for receptor locations
-    plt.text(0.02, 0.98, 'Receptor Locations:\\n' +
-             f'Receptor 1: {receptor_coords[0]}\\n' +
-             f'Receptor 2: {receptor_coords[1]}\\n' +
-             f'Receptor 3: {receptor_coords[2]}',
-             transform=plt.gca().transAxes, fontsize=10,
-             bbox=dict(boxstyle='round', facecolor='white', alpha=0.8),
-             verticalalignment='top')
     
     # Save plot
     filename = os.path.join(output_dir, 'receptor_concentrations.png')
@@ -303,9 +381,9 @@ def create_osm_visualizations():
     print("\\nCreating OSM grid visualizations...")
     create_osm_grid_visualization(particle_data, logs_dir)
     
-    # Create receptor concentration plot
-    print("\\nCreating receptor concentration plot...")
-    create_receptor_concentration_plot(particle_data, logs_dir)
+    # Create receptor concentration plot (commented out)
+    # print("\\nCreating receptor concentration plot...")
+    # create_receptor_concentration_plot(particle_data, logs_dir)
     
     # Create individual OSM frames (commented out)
     # print("\\nCreating individual OSM frames...")
@@ -315,7 +393,6 @@ def create_osm_visualizations():
     print(f"Check {logs_dir}/ for:")
     print("  - osm_grid_zoomed_out.png (2x3 wide view)")
     print("  - osm_grid_zoomed_in.png (2x3 NYC focus)")
-    print("  - receptor_concentrations.png (time series plot)")
 
 if __name__ == "__main__":
     create_osm_visualizations()

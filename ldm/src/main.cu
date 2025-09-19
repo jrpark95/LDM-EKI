@@ -2,10 +2,6 @@
 #include "ldm_nuclides.cuh"
 #include "ldm_eki.cuh"
 #include "ldm_eki_logger.cuh"
-#include <thread>
-#include <chrono>
-#include <vector>
-#include <fstream>
 //#include "ldm_cram.cuh"
 //#include "cram_runtime.h"
 
@@ -44,14 +40,16 @@ int main(int argc, char** argv) {
         return 1;
     }
     
-    // Load EKI input_config file
-    std::string eki_input_config_file = "../eki/config/input_config";
-    if (!ekiConfig->loadInputConfigFromFile(eki_input_config_file)) {
-        std::cerr << "[ERROR] Failed to load EKI input_config" << std::endl;
-        return 1;
-    }
+    std::cout << "[DEBUG] EKI configuration loaded successfully:" << std::endl;
+    std::cout << "[DEBUG]   Receptors: " << ekiConfig->getNumReceptors() << std::endl;
+    std::cout << "[DEBUG]   Source emission time steps: " << ekiConfig->getSourceEmission().num_time_steps << std::endl;
+    std::cout << "[DEBUG]   Prior source time steps: " << ekiConfig->getPriorSource().num_time_steps << std::endl;
     
-    printEKIConfiguration(ekiConfig);
+    // Display receptor positions
+    for (int i = 0; i < ekiConfig->getNumReceptors(); i++) {
+        Receptor r = ekiConfig->getReceptor(i);
+        std::cout << "[DEBUG]   Receptor " << i << ": lat=" << r.lat << ", lon=" << r.lon << ", alt=" << r.alt << std::endl;
+    }
     
     // Write EKI configuration to log file
     writeEKIConfigLog(ekiConfig);
@@ -67,15 +65,21 @@ int main(int argc, char** argv) {
     //     return 1;
     // }
     // std::cout << "[DEBUG] CRAM system initialization completed" << std::endl;
-    printSystemInfo();
+    std::cout << "[DEBUG] Single nuclide mode: CRAM system disabled" << std::endl;
 
     ldm.calculateAverageSettlingVelocity();
     ldm.initializeParticles();
     
     ldm.loadFlexHeightData();    // Load height data FIRST
     ldm.initializeFlexGFSData(); // Then calculate DRHO using height data
-    
-    cleanLogDirectory();
+    // Clean log directory before starting simulation
+    std::cout << "[INFO] Cleaning log directory..." << std::endl;
+    int clean_result = system("rm -f /home/jrpark/LDM-EKI/logs/ldm_logs/*.csv /home/jrpark/LDM-EKI/logs/ldm_logs/*.txt /home/jrpark/LDM-EKI/logs/ldm_logs/*.png");
+    if (clean_result == 0) {
+        std::cout << "[INFO] Log directory cleaned successfully" << std::endl;
+    } else {
+        std::cout << "[WARNING] Failed to clean log directory" << std::endl;
+    }
 
     ldm.allocateGPUMemory();
 
@@ -85,34 +89,46 @@ int main(int argc, char** argv) {
 
     // MPI_Finalize();
     
-    prepareObservationData(ekiConfig);
-    runVisualization();
-    printSimulationStatus("Preparing data for EKI...");
-    runEKIEstimation();
+    // Automatically run visualization scripts after simulation
+    std::cout << "\n[INFO] Simulation completed. Running visualization scripts..." << std::endl;
     
-    // Test ensemble loading functionality
-    printSimulationStatus("Testing ensemble loading from EKI...");
-    std::vector<std::vector<float>> ensemble_matrix;
-    int time_intervals, ensemble_size;
-    
-    // Try to load ensemble from first iteration
-    if (loadEKIEnsembleStates(ensemble_matrix, time_intervals, ensemble_size, 1)) {
-        std::cout << "[INFO] Successfully loaded and logged ensemble matrix [" 
-                  << time_intervals << " x " << ensemble_size << "]" << std::endl;
-        
-        // Display some basic info about the loaded ensemble
-        float sample_value = ensemble_matrix[0][0];
-        std::cout << "[INFO] Sample ensemble value [time=0, ensemble=0]: " << sample_value << std::endl;
-        
-        // Test memory allocation verification
-        std::cout << "[INFO] Memory allocation test:" << std::endl;
-        std::cout << "  - Allocated " << ensemble_matrix.size() << " time rows" << std::endl;
-        std::cout << "  - Each row has " << ensemble_matrix[0].size() << " ensemble columns" << std::endl;
-        std::cout << "  - Total memory: " << (time_intervals * ensemble_size * sizeof(float)) << " bytes" << std::endl;
+    // Run simple visualization (particle analysis plots)
+    std::cout << "[INFO] Running simple particle visualization..." << std::endl;
+    int result1 = system("cd /home/jrpark/LDM-EKI/ldm && python3 simple_visualize.py");
+    if (result1 == 0) {
+        std::cout << "[INFO] Simple visualization completed successfully." << std::endl;
     } else {
-        std::cout << "[INFO] No ensemble file found - this is expected on first run" << std::endl;
+        std::cout << "[WARNING] Simple visualization failed with exit code: " << result1 << std::endl;
     }
     
+    // Run enhanced visualization
+    std::cout << "[INFO] Running enhanced particle visualization..." << std::endl;
+    int result2 = system("cd /home/jrpark/LDM-EKI/ldm && python3 enhanced_visualize.py");
+    if (result2 == 0) {
+        std::cout << "[INFO] Enhanced visualization completed successfully." << std::endl;
+    } else {
+        std::cout << "[WARNING] Enhanced visualization failed with exit code: " << result2 << std::endl;
+    }
+    
+    // Run receptor analysis
+    std::cout << "[INFO] Running receptor analysis..." << std::endl;
+    int result3 = system("cd /home/jrpark/LDM-EKI/ldm && python3 receptor_analysis.py");
+    if (result3 == 0) {
+        std::cout << "[INFO] Receptor analysis completed successfully." << std::endl;
+    } else {
+        std::cout << "[WARNING] Receptor analysis failed with exit code: " << result3 << std::endl;
+    }
+    
+    // Run particle concentration analysis
+    std::cout << "[INFO] Running particle concentration analysis..." << std::endl;
+    int result4 = system("cd /home/jrpark/LDM-EKI/ldm && python3 particle_concentration_analysis.py");
+    if (result4 == 0) {
+        std::cout << "[INFO] Particle concentration analysis completed successfully." << std::endl;
+    } else {
+        std::cout << "[WARNING] Particle concentration analysis failed with exit code: " << result4 << std::endl;
+    }
+    
+    std::cout << "[INFO] All visualization scripts completed. Check logs/ldm_logs/ for results." << std::endl;
     
     return 0;
 }
