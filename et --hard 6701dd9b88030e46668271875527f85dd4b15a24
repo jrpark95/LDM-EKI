@@ -1,0 +1,119 @@
+[33mcommit 6701dd9b88030e46668271875527f85dd4b15a24[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m
+Author: jrpark95 <itts9904@snu.ac.kr>
+Date:   Sat Sep 20 20:26:22 2025 +0900
+
+    ens 초기화 1차
+
+[33mcommit 2730ffdec9920329091271e28368f317696fddf0[m
+Merge: b1d1e60 58bc5d1
+Author: jrpark95 <itts9904@snu.ac.kr>
+Date:   Sat Sep 20 18:32:02 2025 +0900
+
+    Merge with remote changes - keep file cleanup with 24th file retention
+
+[33mcommit b1d1e60c141a85fd97421fc2efcc29b6683e4852[m
+Author: jrpark95 <itts9904@snu.ac.kr>
+Date:   Sat Sep 20 18:31:21 2025 +0900
+
+    파티클 농도 시각화 시간순 정렬 수정 및 파일 정리 개선
+    
+    - particle_concentration_analysis.py에서 파일명 문자열 정렬 대신 시간 인덱스 기반 정렬 구현
+    - 시간별 데이터를 딕셔너리로 저장 후 정렬하여 매끄러운 시계열 그래프 생성
+    - 시각화 완료 후 particles_15min_24.csv만 유지하도록 파일 정리 로직 개선
+    
+    🤖 Generated with [Claude Code](https://claude.ai/code)
+    
+    Co-Authored-By: Claude <noreply@anthropic.com>
+
+[33mcommit 58bc5d1502b020ec7f8488768e4ee4693cf27e36[m
+Author: jrpark95 <itts9904@snu.ac.kr>
+Date:   Sat Sep 20 17:42:22 2025 +0900
+
+    파티클 시각화 개선 및 파일 생성 최적화
+    
+    - 그래프 시각화 개선: 마커 스타일 통일 및 시계열 데이터 정렬
+    - 파티클 파일 생성 최적화: 마지막 시점(6시간)만 저장하도록 변경
+    - 불필요한 중간 파일 생성 및 정리 과정 제거
+    
+    🤖 Generated with [Claude Code](https://claude.ai/code)
+    
+    Co-Authored-By: Claude <noreply@anthropic.com>
+
+[33mcommit 858d37d6ef3211771f9dd0faf8b2c934fcca80da[m
+Author: jrpark95 <itts9904@snu.ac.kr>
+Date:   Sat Sep 20 17:03:33 2025 +0900
+
+    리셉터 시각화 개선 및 파일 관리 최적화
+    
+    - 리셉터 감지 반지름을 10도로 확장하여 모든 입자 포괄
+    - OSM 그리드를 1시간 간격 6시간 전체 표시로 개선
+    - 15분 간격 리셉터별 농도 시계열 분석 추가
+    - 불필요한 PNG 생성 제거 및 파일 정리 자동화
+    - 농도 플롯 선 연결 품질 개선
+    
+    🤖 Generated with [Claude Code](https://claude.ai/code)
+    
+    Co-Authored-By: Claude <noreply@anthropic.com>
+
+[33mcommit 6bd5991cf7f93a74c999c3c2bc96f5738444f6dd[m
+Author: jrpark95 <itts9904@snu.ac.kr>
+Date:   Fri Sep 19 19:50:34 2025 +0900
+
+    2025.09.19 퇴근
+
+[33mcommit a29fcbc35d1b1bbea512e313ef61f63ecadaaebc[m
+Author: jrpark95 <itts9904@snu.ac.kr>
+Date:   Fri Sep 19 19:49:30 2025 +0900
+
+    2025.09.19 퇴근
+
+[33mcommit d2bec2c86239e81db1ae5f04bec104919406e08a[m
+Author: jrpark95 <itts9904@snu.ac.kr>
+Date:   Fri Sep 19 19:41:40 2025 +0900
+
+    2025.09.19
+
+[33mcommit 25bd1643ef7fe3eef40f57b755b966b3fc8c8dae[m
+Author: jrpark95 <itts9904@snu.ac.kr>
+Date:   Fri Sep 19 16:57:12 2025 +0900
+
+    EKI 송신 및 초기 앙상블 state 발신, LDM 수신
+
+[33mcommit b693c454a6dd64cc7089d68746c3a4c681a5f41c[m
+Author: jrpark95 <itts9904@snu.ac.kr>
+Date:   Fri Sep 19 11:49:20 2025 +0900
+
+    Add documentation for particle initialization improvements
+    
+    - Fixed particle concentration initialization to use EKI Source_1 time series
+    - Particles now initialize with sequential concentrations based on timeidx
+    - Added automatic log directory cleanup before simulation
+    - Fixed particle counting logic to use nop instead of part.size()
+    
+    🤖 Generated with [Claude Code](https://claude.ai/code)
+    
+    Co-Authored-By: Claude <noreply@anthropic.com>
+
+[33mcommit 482794084621b546a87cf010a512a7bac6816fbb[m
+Author: jrpark95 <itts9904@snu.ac.kr>
+Date:   Fri Sep 19 11:42:34 2025 +0900
+
+    입자 시계열 초기화 문제 수정
+
+[33mcommit 98bc4324a2ca081780f3139d6db12059f4b79e02[m
+Author: jrpark95 <itts9904@snu.ac.kr>
+Date:   Thu Sep 18 23:10:21 2025 +0900
+
+    시각화 로그 업데이트
+
+[33mcommit 15181869bc28d6e4add280b5542fb547296c9524[m
+Author: jrpark95 <itts9904@snu.ac.kr>
+Date:   Thu Sep 18 19:54:27 2025 +0900
+
+    Initial commit: LDM-EKI integrated system
+    
+    - LDM (Lagrangian Dispersion Model) with CRAM7 radioactive decay
+    - EKI (Ensemble Kalman Inversion) optimization system
+    - Fixed t0 interpolation issue for meteorological data boundaries
+    - Complete CUDA implementation with GPU memory management
+    - Integrated workflow for inverse source estimation
