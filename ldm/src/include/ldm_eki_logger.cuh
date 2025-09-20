@@ -13,6 +13,8 @@
 #include <cmath>
 #include <iomanip>
 #include <numeric>
+#include <sstream>
+#include <cmath>
 
 void writeEKIConfigLog(EKIConfig* ekiConfig);
 

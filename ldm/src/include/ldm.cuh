@@ -433,6 +433,9 @@ __global__ void count_active_particles_per_ensemble(const LDM::LDMpart* d_part,
                                                    int Nens,
                                                    int* active_counts);
 
+// Debug macros
+#define LDM_DEBUG_ENS 0
+
 // Ensemble mode global variables
 extern bool ensemble_mode_active;
 extern int Nens;
