@@ -397,10 +397,7 @@ void LDM::logParticlePositionsForVisualization(int timestep, float currentTime) 
     if (fmod(currentTime, 900.0f) < dt) {
         int quarter_hour = (int)(currentTime / 900.0f);
         
-        // Only save the final timestep (24th quarter hour = 6 hours)
-        if (quarter_hour != 24) {
-            return;
-        }
+        // Save all timesteps (0-24 quarter hours = 0-6 hours)
         
         // Copy particle data from GPU to CPU (only nop particles)
         std::vector<LDMpart> cpu_particles(nop);

@@ -2,6 +2,7 @@
 #include "ldm_nuclides.cuh"
 #include "ldm_eki.cuh"
 #include "ldm_eki_logger.cuh"
+#include <cstdio>  // for remove() function
 //#include "ldm_cram.cuh"
 //#include "cram_runtime.h"
 
@@ -129,73 +130,80 @@ int main(int argc, char** argv) {
 
     // MPI_Finalize();
     
-    // Automatically run visualization scripts after simulation
-    std::cout << "\n[INFO] Simulation completed. Running visualization scripts..." << std::endl;
-    
-    // Run simple visualization (particle analysis plots)
-    std::cout << "[INFO] Running simple particle visualization..." << std::endl;
-    int result1 = system("cd /home/jrpark/LDM-EKI/ldm && python3 simple_visualize.py");
-    if (result1 == 0) {
-        std::cout << "[INFO] Simple visualization completed successfully." << std::endl;
-    } else {
-        std::cout << "[WARNING] Simple visualization failed with exit code: " << result1 << std::endl;
+    if(0){
+        // Automatically run visualization scripts after simulation
+        std::cout << "\n[INFO] Simulation completed. Running visualization scripts..." << std::endl;
+        
+        // Run simple visualization (particle analysis plots)
+        std::cout << "[INFO] Running simple particle visualization..." << std::endl;
+        int result1 = system("cd /home/jrpark/LDM-EKI/ldm && python3 simple_visualize.py");
+        if (result1 == 0) {
+            std::cout << "[INFO] Simple visualization completed successfully." << std::endl;
+        } else {
+            std::cout << "[WARNING] Simple visualization failed with exit code: " << result1 << std::endl;
+        }
+        
+        // Run enhanced visualization
+        std::cout << "[INFO] Running enhanced particle visualization..." << std::endl;
+        int result2 = system("cd /home/jrpark/LDM-EKI/ldm && python3 enhanced_visualize.py");
+        if (result2 == 0) {
+            std::cout << "[INFO] Enhanced visualization completed successfully." << std::endl;
+        } else {
+            std::cout << "[WARNING] Enhanced visualization failed with exit code: " << result2 << std::endl;
+        }
+        
+        // Run receptor analysis
+        std::cout << "[INFO] Running receptor analysis..." << std::endl;
+        int result3 = system("cd /home/jrpark/LDM-EKI/ldm && python3 receptor_analysis.py");
+        if (result3 == 0) {
+            std::cout << "[INFO] Receptor analysis completed successfully." << std::endl;
+        } else {
+            std::cout << "[WARNING] Receptor analysis failed with exit code: " << result3 << std::endl;
+        }
+        
+        // Run particle concentration analysis
+        std::cout << "[INFO] Running particle concentration analysis..." << std::endl;
+        int result4 = system("cd /home/jrpark/LDM-EKI/ldm && python3 particle_concentration_analysis.py");
+        if (result4 == 0) {
+            std::cout << "[INFO] Particle concentration analysis completed successfully." << std::endl;
+        } else {
+            std::cout << "[WARNING] Particle concentration analysis failed with exit code: " << result4 << std::endl;
+        }
+        
+        // Run OpenStreetMap visualization
+        std::cout << "[INFO] Running OpenStreetMap visualization..." << std::endl;
+        int result5 = system("cd /home/jrpark/LDM-EKI/ldm && python3 osm_grid_visualization.py");
+        if (result5 == 0) {
+            std::cout << "[INFO] OpenStreetMap visualization completed successfully." << std::endl;
+        } else {
+            std::cout << "[WARNING] OpenStreetMap visualization failed with exit code: " << result5 << std::endl;
+        }
+        
+        // Run 15-minute receptor time series analysis
+        std::cout << "[INFO] Running 15-minute receptor time series analysis..." << std::endl;
+        int result6 = system("cd /home/jrpark/LDM-EKI/ldm && python3 receptor_time_series.py");
+        if (result6 == 0) {
+            std::cout << "[INFO] 15-minute receptor time series analysis completed successfully." << std::endl;
+        } else {
+            std::cout << "[WARNING] 15-minute receptor time series analysis failed with exit code: " << result6 << std::endl;
+        }
+        
+        std::cout << "[INFO] All visualization scripts completed. Check logs/ldm_logs/ for results." << std::endl;
+        
     }
-    
-    // Run enhanced visualization
-    std::cout << "[INFO] Running enhanced particle visualization..." << std::endl;
-    int result2 = system("cd /home/jrpark/LDM-EKI/ldm && python3 enhanced_visualize.py");
-    if (result2 == 0) {
-        std::cout << "[INFO] Enhanced visualization completed successfully." << std::endl;
-    } else {
-        std::cout << "[WARNING] Enhanced visualization failed with exit code: " << result2 << std::endl;
-    }
-    
-    // Run receptor analysis
-    std::cout << "[INFO] Running receptor analysis..." << std::endl;
-    int result3 = system("cd /home/jrpark/LDM-EKI/ldm && python3 receptor_analysis.py");
-    if (result3 == 0) {
-        std::cout << "[INFO] Receptor analysis completed successfully." << std::endl;
-    } else {
-        std::cout << "[WARNING] Receptor analysis failed with exit code: " << result3 << std::endl;
-    }
-    
-    // Run particle concentration analysis
-    std::cout << "[INFO] Running particle concentration analysis..." << std::endl;
-    int result4 = system("cd /home/jrpark/LDM-EKI/ldm && python3 particle_concentration_analysis.py");
-    if (result4 == 0) {
-        std::cout << "[INFO] Particle concentration analysis completed successfully." << std::endl;
-    } else {
-        std::cout << "[WARNING] Particle concentration analysis failed with exit code: " << result4 << std::endl;
-    }
-    
-    // Run OpenStreetMap visualization
-    std::cout << "[INFO] Running OpenStreetMap visualization..." << std::endl;
-    int result5 = system("cd /home/jrpark/LDM-EKI/ldm && python3 osm_grid_visualization.py");
-    if (result5 == 0) {
-        std::cout << "[INFO] OpenStreetMap visualization completed successfully." << std::endl;
-    } else {
-        std::cout << "[WARNING] OpenStreetMap visualization failed with exit code: " << result5 << std::endl;
-    }
-    
-    // Run 15-minute receptor time series analysis
-    std::cout << "[INFO] Running 15-minute receptor time series analysis..." << std::endl;
-    int result6 = system("cd /home/jrpark/LDM-EKI/ldm && python3 receptor_time_series.py");
-    if (result6 == 0) {
-        std::cout << "[INFO] 15-minute receptor time series analysis completed successfully." << std::endl;
-    } else {
-        std::cout << "[WARNING] 15-minute receptor time series analysis failed with exit code: " << result6 << std::endl;
-    }
-    
-    std::cout << "[INFO] All visualization scripts completed. Check logs/ldm_logs/ for results." << std::endl;
-    
-    // Clean up intermediate particle files (keep only the 24th one)
+
+    // Clean up intermediate particle files (keep 0 and 24, remove 1-23)
     std::cout << "\n[INFO] Cleaning up intermediate particle files..." << std::endl;
-    int cleanup_result = system("cd /home/jrpark/LDM-EKI/logs/ldm_logs && find . -name 'particles_15min_*.csv' ! -name 'particles_15min_24.csv' -delete 2>/dev/null || true");
-    if (cleanup_result == 0) {
-        std::cout << "[INFO] Intermediate particle files cleaned (kept particles_15min_24.csv)" << std::endl;
-    } else {
-        std::cout << "[WARNING] Failed to clean intermediate files" << std::endl;
+    int files_removed = 0;
+    for (int i = 1; i <= 23; i++) {
+        std::string filename = "/home/jrpark/LDM-EKI/logs/ldm_logs/particles_15min_" + std::to_string(i) + ".csv";
+        if (remove(filename.c_str()) == 0) {
+            files_removed++;
+        }
     }
+    std::cout << "[INFO] Intermediate particle files cleaned (" << files_removed << " files removed from particles_15min_1.csv to particles_15min_23.csv, kept particles_15min_0.csv and particles_15min_24.csv)" << std::endl;
+
     
+
     return 0;
 }
