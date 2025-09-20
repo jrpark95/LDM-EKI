@@ -1,5 +1,5 @@
 NVCC = /usr/local/cuda/bin/nvcc
-NVCCFLAGS = -w -O3 -arch=sm_61 -DCRAM_DEBUG -I./src/include -I./src/kernels
+NVCCFLAGS = -w -O3 -arch=sm_80 -DLDM_DEBUG_ENS -std=c++17 -I./src/include -I./src/kernels
 
 MPI_INC = /usr/local/openmpi/include
 MPI_LIB = /usr/local/openmpi/lib
@@ -18,25 +18,36 @@ endif
 
 OBJ_PATH = .$(PATH_SEP)objectfiles
 
-TARGET = ldm
+TARGET = ldm_main
+TARGET_REFACTORED = ldm_refactored
 
-SRCS = src/main.cu src/ldm_eki.cu src/ldm_eki_logger.cu
+SRCS = src/main.cu src/ldm_eki.cu src/ldm_eki_logger.cu src/ldm_ensemble_init.cu src/kernels/ldm_ensemble_kernels.cu
+SRCS_REFACTORED = src/main_refactored.cu src/ldm_integration.cu src/ldm_eki.cu src/ldm_eki_logger.cu src/ldm_ensemble_init.cu src/kernels/ldm_ensemble_kernels.cu
 OBJS = $(addprefix $(OBJ_PATH)$(PATH_SEP), $(SRCS:.cu=.o))
+OBJS_REFACTORED = $(addprefix $(OBJ_PATH)$(PATH_SEP), $(SRCS_REFACTORED:.cu=.o))
+
+all: $(TARGET) $(TARGET_REFACTORED)
 
 $(TARGET): $(OBJS)
 	$(NVCC) $(NVCCFLAGS) -o $@ $(OBJS)
 
+$(TARGET_REFACTORED): $(OBJS_REFACTORED)
+	$(NVCC) $(NVCCFLAGS) -o $@ $(OBJS_REFACTORED)
+
 $(OBJ_PATH)$(PATH_SEP)%.o: %.cu
+	mkdir -p $(dir $@)
 	$(NVCC) $(NVCCFLAGS) -c $< -o $@
 
 clean:
 ifeq ($(OS_DETECTED),Windows)
-	del /Q /F $(subst /,\,$(OBJS)) $(TARGET).exe $(TARGET).exp $(TARGET).lib
+	del /Q /F $(subst /,\,$(OBJS)) $(subst /,\,$(OBJS_REFACTORED)) $(TARGET).exe $(TARGET_REFACTORED).exe $(TARGET).exp $(TARGET).lib $(TARGET_REFACTORED).exp $(TARGET_REFACTORED).lib
 else
-	rm -f $(OBJS) $(TARGET)
+	rm -f $(OBJS) $(OBJS_REFACTORED) $(TARGET) $(TARGET_REFACTORED)
 endif
 
-$(OBJS): | $(OBJ_PATH)
+$(OBJS) $(OBJS_REFACTORED): | $(OBJ_PATH)
 
 $(OBJ_PATH):
 	mkdir -p $(OBJ_PATH)
+	mkdir -p $(OBJ_PATH)/src
+	mkdir -p $(OBJ_PATH)/src/kernels

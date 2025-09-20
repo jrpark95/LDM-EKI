@@ -172,8 +172,14 @@ void LDM::runSimulation(){
         // Recalculate blocks in case new particles were added
         blocks = (part.size() + threadsPerBlock - 1) / threadsPerBlock;
 
-        update_particle_flags<<<blocks, threadsPerBlock>>>
-            (d_part, activationRatio);
+        // Use ensemble-aware activation if initialized with ensembles
+        if (ensemble_mode_active) {
+            update_particle_flags_ensembles<<<blocks, threadsPerBlock>>>
+                (d_part, nop_per_ensemble, Nens, activationRatio);
+        } else {
+            update_particle_flags<<<blocks, threadsPerBlock>>>
+                (d_part, activationRatio);
+        }
         cudaDeviceSynchronize();
 
         NuclideConfig* nucConfig = NuclideConfig::getInstance();

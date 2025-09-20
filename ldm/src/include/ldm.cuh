@@ -19,6 +19,8 @@
 #include <tuple>
 #include <future>
 
+// Forward declarations to avoid circular dependency
+
 
 #include "ldm_struct.cuh"
 #include "ldm_config.cuh" 
@@ -357,6 +359,29 @@ public:
     // Particle data logging and visualization functions
     void logParticlePositionsForVisualization(int timestep, float currentTime);
     void logParticleCountData(int timestep, float currentTime);
+    
+    // Ensemble initialization methods  
+    bool initializeParticlesEnsembles(int Nens,
+                                     const std::vector<float>& emission_time_series,
+                                     const std::vector<Source>& sources,
+                                     int nop_per_ensemble);
+    
+    bool initializeParticlesEnsemblesFlat(int Nens,
+                                          const std::vector<float>& emission_flat,
+                                          const std::vector<Source>& sources,
+                                          int nop_per_ensemble);
+    
+    // Integration methods
+    bool writeObservationsSingle(const std::string& dir, const std::string& tag);
+    void freeGPUMemory();
+    bool runSimulationEnsembles(int Nens);
+    bool writeObservationsEnsembles(const std::string& dir, const std::string& tag);
+    bool writeIntegrationDebugLogs(const std::string& dir, const std::string& tag);
+    
+    // Ensemble state
+    bool ensemble_mode_active = false;
+    int current_Nens = 1;
+    int current_nop_per_ensemble = 0;
 
     // ldm_mdata.cuh
     void initializeFlexGFSData();  // Used in main
@@ -396,6 +421,22 @@ public:
 #define LDM_CLASS_DECLARED 1
 // Global MPI variables - modernized
 extern int mpiRank, mpiSize;
+
+// Ensemble activation kernel declarations (must be global)
+__global__ void update_particle_flags_ensembles(LDM::LDMpart* d_part,
+                                               int nop_per_ensemble,
+                                               int Nens,
+                                               float activationRatio);
+
+__global__ void count_active_particles_per_ensemble(const LDM::LDMpart* d_part,
+                                                   int nop_per_ensemble,
+                                                   int Nens,
+                                                   int* active_counts);
+
+// Ensemble mode global variables
+extern bool ensemble_mode_active;
+extern int Nens;
+extern int nop_per_ensemble;
 
 // Global nuclide count variable
 extern int g_num_nuclides;
@@ -477,6 +518,11 @@ GridConfig loadGridConfig() {
 // Global variable definitions
 int mpiRank = 1, mpiSize = 1;
 
+// Ensemble mode global variables implementation
+bool ensemble_mode_active = false;
+int Nens = 1;
+int nop_per_ensemble = 0;
+
 // void loadRadionuclideData() {
 //     std::vector<std::string> species_names = g_config.getStringArray("species_names");
 //     std::vector<float> decay_constants = g_config.getFloatArray("decay_constants");
@@ -501,6 +547,7 @@ int mpiRank = 1, mpiSize = 1;
 #include "ldm_kernels.cuh" 
 #include "ldm_init.cuh" 
 #include "ldm_mdata.cuh" 
+#include "ldm_ensemble_init.cuh"
 // #include "ldm_socket.cuh"
 #include "ldm_func.cuh" 
 #include "ldm_plot.cuh"

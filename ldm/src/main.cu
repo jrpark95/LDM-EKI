@@ -68,7 +68,47 @@ int main(int argc, char** argv) {
     std::cout << "[DEBUG] Single nuclide mode: CRAM system disabled" << std::endl;
 
     ldm.calculateAverageSettlingVelocity();
-    ldm.initializeParticles();
+    
+    // Check if ensemble mode should be enabled (default: 100 ensembles for EKI)
+    const int target_ensembles = 100;  // Standard EKI ensemble count
+    bool use_ensemble_mode = target_ensembles > 1;
+    
+    if (use_ensemble_mode) {
+        std::cout << "[INFO] Ensemble mode enabled with " << target_ensembles << " ensembles" << std::endl;
+        
+        // Set global ensemble variables
+        ensemble_mode_active = true;
+        Nens = target_ensembles;
+        nop_per_ensemble = nop / Nens;  // Divide particles among ensembles
+        
+        std::cout << "[INFO] Each ensemble will have " << nop_per_ensemble << " particles" << std::endl;
+        
+        // Get emission time series from EKI
+        const SourceEmission& source_emission = ekiConfig->getSourceEmission();
+        std::vector<float> emission_time_series = source_emission.time_series;
+        
+        // Create source from EKI configuration
+        std::vector<Source> sources;
+        Source eki_source;
+        eki_source.lat = ekiConfig->getSourceLat();
+        eki_source.lon = ekiConfig->getSourceLon();
+        eki_source.height = ekiConfig->getSourceAlt();
+        sources.push_back(eki_source);
+        
+        // Initialize particles using ensemble method
+        bool ensemble_init_success = ldm.initializeParticlesEnsembles(
+            Nens, emission_time_series, sources, nop_per_ensemble);
+            
+        if (!ensemble_init_success) {
+            std::cerr << "[ERROR] Ensemble particle initialization failed" << std::endl;
+            return 1;
+        }
+        
+        std::cout << "[INFO] Ensemble particle initialization completed successfully" << std::endl;
+    } else {
+        std::cout << "[INFO] Single ensemble mode" << std::endl;
+        ldm.initializeParticles();
+    }
     
     ldm.loadFlexHeightData();    // Load height data FIRST
     ldm.initializeFlexGFSData(); // Then calculate DRHO using height data
