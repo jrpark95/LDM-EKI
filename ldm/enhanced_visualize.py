@@ -274,11 +274,11 @@ def main():
     print(f"Found particle data for {len(particle_data)} hours")
     
     # Create enhanced visualizations
-    print("Creating enhanced geographic plots...")
-    create_geographic_styled_plots(particle_data, logs_dir)
+    # print("Creating enhanced geographic plots...")
+    # create_geographic_styled_plots(particle_data, logs_dir)
     
-    print("Creating animation frames...")
-    create_animation_frames(particle_data, logs_dir)
+    # print("Creating animation frames...")
+    # create_animation_frames(particle_data, logs_dir)
     
     print("Enhanced visualization complete!")
     print(f"Check {logs_dir}/ for generated plots.")

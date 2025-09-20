@@ -128,7 +128,34 @@ int main(int argc, char** argv) {
         std::cout << "[WARNING] Particle concentration analysis failed with exit code: " << result4 << std::endl;
     }
     
+    // Run OpenStreetMap visualization
+    std::cout << "[INFO] Running OpenStreetMap visualization..." << std::endl;
+    int result5 = system("cd /home/jrpark/LDM-EKI/ldm && python3 osm_grid_visualization.py");
+    if (result5 == 0) {
+        std::cout << "[INFO] OpenStreetMap visualization completed successfully." << std::endl;
+    } else {
+        std::cout << "[WARNING] OpenStreetMap visualization failed with exit code: " << result5 << std::endl;
+    }
+    
+    // Run 15-minute receptor time series analysis
+    std::cout << "[INFO] Running 15-minute receptor time series analysis..." << std::endl;
+    int result6 = system("cd /home/jrpark/LDM-EKI/ldm && python3 receptor_time_series.py");
+    if (result6 == 0) {
+        std::cout << "[INFO] 15-minute receptor time series analysis completed successfully." << std::endl;
+    } else {
+        std::cout << "[WARNING] 15-minute receptor time series analysis failed with exit code: " << result6 << std::endl;
+    }
+    
     std::cout << "[INFO] All visualization scripts completed. Check logs/ldm_logs/ for results." << std::endl;
+    
+    // Clean up intermediate particle files (keep only the last one)
+    std::cout << "\n[INFO] Cleaning up intermediate particle files..." << std::endl;
+    int cleanup_result = system("cd /home/jrpark/LDM-EKI/logs/ldm_logs && find . -name 'particles_15min_*.csv' ! -name 'particles_15min_24.csv' -delete 2>/dev/null || true");
+    if (cleanup_result == 0) {
+        std::cout << "[INFO] Intermediate particle files cleaned (kept final file only)" << std::endl;
+    } else {
+        std::cout << "[WARNING] Failed to clean intermediate files" << std::endl;
+    }
     
     return 0;
 }

@@ -269,11 +269,11 @@ def main():
     print(f"Found particle data for {len(particle_data)} hours")
     
     # Create visualizations
-    print("Creating particle distribution plots...")
-    create_particle_plots(particle_data, logs_dir)
+    # print("Creating particle distribution plots...")
+    # create_particle_plots(particle_data, logs_dir)
     
-    print("Creating time series plots...")
-    create_time_series_plots(particle_data, count_data, logs_dir)
+    # print("Creating time series plots...")
+    # create_time_series_plots(particle_data, count_data, logs_dir)
     
     print("Creating summary report...")
     create_summary_report(particle_data, count_data, logs_dir)

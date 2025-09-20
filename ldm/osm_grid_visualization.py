@@ -14,14 +14,14 @@ def load_particle_data(logs_dir="../logs/ldm_logs"):
     """Load particle data from CSV files"""
     particle_data = {}
     
-    particle_files = glob.glob(os.path.join(logs_dir, "particles_hour_*.csv"))
+    particle_files = glob.glob(os.path.join(logs_dir, "particles_15min_*.csv"))
     
     for file in sorted(particle_files):
         try:
             df = pd.read_csv(file)
-            hour = int(file.split('_hour_')[1].split('.')[0])
-            particle_data[hour] = df
-            print(f"Loaded {len(df)} particles for hour {hour}")
+            quarter_hour = int(file.split('_15min_')[1].split('.')[0])
+            particle_data[quarter_hour] = df
+            print(f"Loaded {len(df)} particles for 15-min interval {quarter_hour}")
         except Exception as e:
             print(f"Error loading {file}: {e}")
     
@@ -53,7 +53,7 @@ def create_osm_grid_visualization(particle_data, output_dir="../logs/ldm_logs"):
         all_concentrations = []
         filtered_data = {}
         
-        for hour, df in particle_data.items():
+        for quarter_hour, df in particle_data.items():
             if df.empty:
                 continue
             mask = ((df['longitude'] >= lon_min) & (df['longitude'] <= lon_max) & 
@@ -61,7 +61,7 @@ def create_osm_grid_visualization(particle_data, output_dir="../logs/ldm_logs"):
             df_region = df[mask]
             if not df_region.empty:
                 all_concentrations.extend(df_region['concentration'].values)
-                filtered_data[hour] = df_region
+                filtered_data[quarter_hour] = df_region
         
         if not all_concentrations:
             continue
@@ -71,15 +71,19 @@ def create_osm_grid_visualization(particle_data, output_dir="../logs/ldm_logs"):
         # Create 2x3 subplot grid
         fig, axes = plt.subplots(2, 3, figsize=(18, 12))
         fig.suptitle(f'NYC Particle Dispersion - {zoom_config["title_suffix"]}\\n'
-                     f'Time Evolution (Hours 1-6)', fontsize=20, fontweight='bold')
+                     f'Time Evolution (Hourly snapshots)', fontsize=20, fontweight='bold')
         
-        # Plot each hour
-        for i, hour in enumerate(sorted(filtered_data.keys())):
+        # Plot every 4th interval (1 hour intervals) for 6 hours
+        sorted_keys = sorted(filtered_data.keys())
+        # Select intervals 4, 8, 12, 16, 20, 24 (1hr, 2hr, 3hr, 4hr, 5hr, 6hr)
+        hour_intervals = [4, 8, 12, 16, 20, 24]
+        selected_keys = [k for k in sorted_keys if k in hour_intervals]
+        for i, quarter_hour in enumerate(selected_keys):
             row = i // 3
             col = i % 3
             ax = axes[row, col]
             
-            df_region = filtered_data[hour]
+            df_region = filtered_data[quarter_hour]
             
             # Create scatter plot
             scatter = ax.scatter(df_region['longitude'], df_region['latitude'], 
@@ -104,16 +108,17 @@ def create_osm_grid_visualization(particle_data, output_dir="../logs/ldm_logs"):
             try:
                 ctx.add_basemap(ax, crs='EPSG:4326', source=ctx.providers.OpenStreetMap.Mapnik, alpha=0.7)
             except Exception as e:
-                print(f"Could not add basemap for hour {hour}: {e}")
+                print(f"Could not add basemap for interval {quarter_hour}: {e}")
                 ax.grid(True, alpha=0.3)
             
             # Labels and title for each subplot
-            ax.set_title(f'Hour {hour}\\n{len(df_region)} particles', fontsize=14, fontweight='bold')
+            time_in_hours = quarter_hour * 0.25
+            ax.set_title(f'Hour {int(time_in_hours)}\\n{len(df_region)} particles', fontsize=14, fontweight='bold')
             ax.set_xlabel('Longitude', fontsize=12)
             ax.set_ylabel('Latitude', fontsize=12)
             
             # Add time annotation
-            ax.text(0.02, 0.98, f'{hour}:00', transform=ax.transAxes, 
+            ax.text(0.02, 0.98, f'{int(time_in_hours)}:00', transform=ax.transAxes, 
                     fontsize=16, fontweight='bold', 
                     bbox=dict(boxstyle='round', facecolor='white', alpha=0.8),
                     verticalalignment='top')
