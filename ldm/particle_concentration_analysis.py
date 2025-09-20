@@ -62,12 +62,22 @@ def analyze_particle_concentrations():
         print("No valid data found!")
         return
     
+    # Sort all data by time
+    sorted_indices = np.argsort(quarter_hours)
+    quarter_hours = [quarter_hours[i] for i in sorted_indices]
+    mean_concentrations = [mean_concentrations[i] for i in sorted_indices]
+    median_concentrations = [median_concentrations[i] for i in sorted_indices]
+    std_concentrations = [std_concentrations[i] for i in sorted_indices]
+    min_concentrations = [min_concentrations[i] for i in sorted_indices]
+    max_concentrations = [max_concentrations[i] for i in sorted_indices]
+    particle_counts = [particle_counts[i] for i in sorted_indices]
+    
     # Create comprehensive analysis plots
     fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(15, 12))
     
     # Plot 1: Mean and Median concentrations over time
-    ax1.plot(quarter_hours, mean_concentrations, 'b-o', label='Mean Concentration', linewidth=2, markersize=4)
-    ax1.plot(quarter_hours, median_concentrations, 'r-s', label='Median Concentration', linewidth=2, markersize=4)
+    ax1.plot(quarter_hours, mean_concentrations, 'b-o', label='Mean Concentration', linewidth=2, markersize=6)
+    ax1.plot(quarter_hours, median_concentrations, 'r-o', label='Median Concentration', linewidth=2, markersize=6)
     ax1.set_xlabel('Time (hours)')
     ax1.set_ylabel('Concentration (Bq)')
     ax1.set_title('Mean and Median Particle Concentrations Over Time')
@@ -77,7 +87,7 @@ def analyze_particle_concentrations():
     
     # Plot 2: Concentration range (min/max) over time
     ax2.fill_between(quarter_hours, min_concentrations, max_concentrations, alpha=0.3, color='gray', label='Min-Max Range')
-    ax2.plot(quarter_hours, mean_concentrations, 'b-o', label='Mean', linewidth=2, markersize=4)
+    ax2.plot(quarter_hours, mean_concentrations, 'b-o', label='Mean', linewidth=2, markersize=6)
     ax2.set_xlabel('Time (hours)')
     ax2.set_ylabel('Concentration (Bq)')
     ax2.set_title('Concentration Range Over Time')
@@ -86,7 +96,7 @@ def analyze_particle_concentrations():
     ax2.ticklabel_format(style='scientific', axis='y', scilimits=(0,0))
     
     # Plot 3: Standard deviation over time
-    ax3.plot(quarter_hours, std_concentrations, 'g-^', label='Standard Deviation', linewidth=2, markersize=4)
+    ax3.plot(quarter_hours, std_concentrations, 'g-o', label='Standard Deviation', linewidth=2, markersize=6)
     ax3.set_xlabel('Time (hours)')
     ax3.set_ylabel('Concentration Standard Deviation (Bq)')
     ax3.set_title('Concentration Variability Over Time')
@@ -116,8 +126,8 @@ def analyze_particle_concentrations():
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
     
     # Plot 1: Linear scale
-    ax1.plot(quarter_hours, mean_concentrations, 'b-o', label='Mean Concentration', linewidth=2, markersize=4)
-    ax1.plot(quarter_hours, median_concentrations, 'r-s', label='Median Concentration', linewidth=2, markersize=4)
+    ax1.plot(quarter_hours, mean_concentrations, 'b-o', label='Mean Concentration', linewidth=2, markersize=6)
+    ax1.plot(quarter_hours, median_concentrations, 'r-o', label='Median Concentration', linewidth=2, markersize=6)
     
     # Add expected linear trend line
     if len(quarter_hours) > 1:
@@ -135,8 +145,8 @@ def analyze_particle_concentrations():
     ax1.set_xticks(np.arange(0, 6.25, 0.25))
     
     # Plot 2: Log scale for better visualization
-    ax2.semilogy(quarter_hours, mean_concentrations, 'b-o', label='Mean Concentration', linewidth=2, markersize=4)
-    ax2.semilogy(quarter_hours, median_concentrations, 'r-s', label='Median Concentration', linewidth=2, markersize=4)
+    ax2.semilogy(quarter_hours, mean_concentrations, 'b-o', label='Mean Concentration', linewidth=2, markersize=6)
+    ax2.semilogy(quarter_hours, median_concentrations, 'r-o', label='Median Concentration', linewidth=2, markersize=6)
     ax2.set_xlabel('Time (hours)')
     ax2.set_ylabel('Concentration (Bq) - Log Scale')
     ax2.set_title('Particle Concentration Time Series (Log Scale)')

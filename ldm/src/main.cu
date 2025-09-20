@@ -148,14 +148,8 @@ int main(int argc, char** argv) {
     
     std::cout << "[INFO] All visualization scripts completed. Check logs/ldm_logs/ for results." << std::endl;
     
-    // Clean up intermediate particle files (keep only the last one)
-    std::cout << "\n[INFO] Cleaning up intermediate particle files..." << std::endl;
-    int cleanup_result = system("cd /home/jrpark/LDM-EKI/logs/ldm_logs && find . -name 'particles_15min_*.csv' ! -name 'particles_15min_24.csv' -delete 2>/dev/null || true");
-    if (cleanup_result == 0) {
-        std::cout << "[INFO] Intermediate particle files cleaned (kept final file only)" << std::endl;
-    } else {
-        std::cout << "[WARNING] Failed to clean intermediate files" << std::endl;
-    }
+    // Note: Only final particle positions are saved (at 6 hours)
+    std::cout << "\n[INFO] Particle position logging completed (final timestep only)" << std::endl;
     
     return 0;
 }
