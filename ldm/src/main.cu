@@ -41,16 +41,7 @@ int main(int argc, char** argv) {
         return 1;
     }
     
-    std::cout << "[DEBUG] EKI configuration loaded successfully:" << std::endl;
-    std::cout << "[DEBUG]   Receptors: " << ekiConfig->getNumReceptors() << std::endl;
-    std::cout << "[DEBUG]   Source emission time steps: " << ekiConfig->getSourceEmission().num_time_steps << std::endl;
-    std::cout << "[DEBUG]   Prior source time steps: " << ekiConfig->getPriorSource().num_time_steps << std::endl;
-    
-    // Display receptor positions
-    for (int i = 0; i < ekiConfig->getNumReceptors(); i++) {
-        Receptor r = ekiConfig->getReceptor(i);
-        std::cout << "[DEBUG]   Receptor " << i << ": lat=" << r.lat << ", lon=" << r.lon << ", alt=" << r.alt << std::endl;
-    }
+    printEKIConfiguration(ekiConfig);
     
     // Write EKI configuration to log file
     writeEKIConfigLog(ekiConfig);
@@ -60,13 +51,7 @@ int main(int argc, char** argv) {
     ldm.loadSimulationConfiguration();
 
     // CRAM system disabled for single nuclide (Co-60) simulation
-    // std::cout << "[DEBUG] Initializing CRAM system..." << std::endl;
-    // if (!ldm.initialize_cram_system("./cram/A60.csv")) {
-    //     std::cerr << "[ERROR] CRAM system initialization failed" << std::endl;
-    //     return 1;
-    // }
-    // std::cout << "[DEBUG] CRAM system initialization completed" << std::endl;
-    std::cout << "[DEBUG] Single nuclide mode: CRAM system disabled" << std::endl;
+    printSystemInfo();
 
     ldm.calculateAverageSettlingVelocity();
     
@@ -113,14 +98,8 @@ int main(int argc, char** argv) {
     
     ldm.loadFlexHeightData();    // Load height data FIRST
     ldm.initializeFlexGFSData(); // Then calculate DRHO using height data
-    // Clean log directory before starting simulation
-    std::cout << "[INFO] Cleaning log directory..." << std::endl;
-    int clean_result = system("rm -f /home/jrpark/LDM-EKI/logs/ldm_logs/*.csv /home/jrpark/LDM-EKI/logs/ldm_logs/*.txt /home/jrpark/LDM-EKI/logs/ldm_logs/*.png");
-    if (clean_result == 0) {
-        std::cout << "[INFO] Log directory cleaned successfully" << std::endl;
-    } else {
-        std::cout << "[WARNING] Failed to clean log directory" << std::endl;
-    }
+    
+    cleanLogDirectory();
 
     ldm.allocateGPUMemory();
 
@@ -129,6 +108,35 @@ int main(int argc, char** argv) {
     ldm.stopTimer();
 
     // MPI_Finalize();
+    
+    // EKI Integration Workflow
+    prepareObservationData(ekiConfig);
+    runVisualization();
+    printSimulationStatus("Preparing data for EKI...");
+    runEKIEstimation();
+    
+    // Test ensemble loading functionality
+    printSimulationStatus("Testing ensemble loading from EKI...");
+    std::vector<std::vector<float>> ensemble_matrix;
+    int time_intervals, ensemble_size;
+    
+    // Try to load ensemble from first iteration
+    if (loadEKIEnsembleStates(ensemble_matrix, time_intervals, ensemble_size, 1)) {
+        std::cout << "[INFO] Successfully loaded and logged ensemble matrix [" 
+                  << time_intervals << " x " << ensemble_size << "]" << std::endl;
+        
+        // Display some basic info about the loaded ensemble
+        float sample_value = ensemble_matrix[0][0];
+        std::cout << "[INFO] Sample ensemble value [time=0, ensemble=0]: " << sample_value << std::endl;
+        
+        // Test memory allocation verification
+        std::cout << "[INFO] Memory allocation test:" << std::endl;
+        std::cout << "  - Allocated " << ensemble_matrix.size() << " time rows" << std::endl;
+        std::cout << "  - Each row has " << ensemble_matrix[0].size() << " ensemble columns" << std::endl;
+        std::cout << "  - Total memory: " << (time_intervals * ensemble_size * sizeof(float)) << " bytes" << std::endl;
+    } else {
+        std::cout << "[INFO] No ensemble file found - this is expected on first run" << std::endl;
+    }
     
     if(0){
         // Automatically run visualization scripts after simulation
