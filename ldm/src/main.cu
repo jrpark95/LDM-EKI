@@ -17,15 +17,28 @@ int g_raddecay = 0;       // Radioactive decay disabled for simple simulation
 // Function declarations
 void saveEnsembleInitializationLog(int Nens, const std::vector<float>& emission_time_series, const std::vector<Source>& sources, int nop_per_ensemble);
 
-// Minimal stub for ensemble function to resolve linking
+// Proper ensemble particle activation kernel
 __global__ void update_particle_flags_ensembles(LDM::LDMpart* d_part, int nop_per_ensemble, int Nens, float activationRatio) {
-    // Simple stub - just call regular flag update for now
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx >= nop_per_ensemble * Nens) return;
+    int total = nop_per_ensemble * Nens;
     
-    // Simple activation logic
-    if (d_part[idx].timeidx * 900.0f <= activationRatio * 86400.0f) {
-        d_part[idx].flag = 1;
+    if (idx >= total) return;
+    
+    // Calculate which ensemble this particle belongs to
+    int ensemble_id = idx / nop_per_ensemble;
+    int particle_idx_in_ensemble = idx % nop_per_ensemble;
+    
+    // Use particle's timeidx to determine activation
+    float particle_activation_ratio = (float)d_part[idx].timeidx / (float)(nop_per_ensemble - 1);
+    
+    // Activate particle if current simulation progress >= particle's activation ratio
+    d_part[idx].flag = (activationRatio >= particle_activation_ratio) ? 1 : 0;
+    
+    // Debug: Print activation info for first few particles of first few ensembles
+    if (ensemble_id < 3 && particle_idx_in_ensemble < 5 && threadIdx.x == 0) {
+        printf("[KERNEL] E%d_P%d: timeidx=%d, activation_ratio=%.3f, sim_ratio=%.3f, flag=%d\n",
+               ensemble_id, particle_idx_in_ensemble, d_part[idx].timeidx, 
+               particle_activation_ratio, activationRatio, d_part[idx].flag);
     }
 }
 
@@ -39,7 +52,7 @@ bool runEnsembleLDM(LDM& ldm, const std::vector<std::vector<float>>& ensemble_ma
 // Ensemble simulation functions
 bool initializeEnsembleParticles(LDM& ldm, const std::vector<std::vector<float>>& ensemble_matrix, int time_intervals, int ensemble_size, const std::vector<Source>& sources);
 void saveEnsembleParticleSnapshot(int timestep, const std::vector<LDM::LDMpart>& particles, int ensemble_size, int nop_per_ensemble);
-bool calculateEnsembleObservations(float ensemble_observations[100][24][3], int ensemble_size, int time_intervals);
+bool calculateEnsembleObservations(float ensemble_observations[100][24][3], int ensemble_size, int time_intervals, const std::vector<LDM::LDMpart>& particles);
 void saveEnsembleObservationsToEKI(const float ensemble_observations[100][24][3], int ensemble_size, int time_intervals, int iteration);
 
 // Function to clean all log directories
@@ -293,7 +306,7 @@ bool runEnsembleLDM(LDM& ldm, const std::vector<std::vector<float>>& ensemble_ma
     
     // Set ensemble mode parameters
     const int Nens = ensemble_size;  // 100 ensembles
-    const int nop_per_ensemble = nop / Nens;  // Divide particles among ensembles
+    const int nop_per_ensemble = 1000;  // 1000 particles per ensemble as specified
     
     ensemble_mode_active = true;
     ::Nens = Nens;
@@ -302,15 +315,14 @@ bool runEnsembleLDM(LDM& ldm, const std::vector<std::vector<float>>& ensemble_ma
     std::cout << "  [5.2] Ensemble configuration: " << Nens << " ensembles, " 
               << nop_per_ensemble << " particles each, total " << (Nens * nop_per_ensemble) << std::endl;
     
-    // Convert ensemble matrix to emission time series
-    std::cout << "  [5.3] Converting ensemble data to emission time series..." << std::endl;
+    // Update global nop to match total ensemble particles
+    nop = Nens * nop_per_ensemble;
     
-    // For now, use the first ensemble's data as the emission time series
-    // In a full implementation, this would be more sophisticated
-    std::vector<float> emission_time_series;
-    for (int t = 0; t < time_intervals; t++) {
-        emission_time_series.push_back(ensemble_matrix[t][0]);  // Use first ensemble as baseline
-    }
+    // The ensemble matrix already contains ensemble-specific data
+    std::cout << "  [5.3] Using ensemble-specific emission data..." << std::endl;
+    
+    // No need for a single emission time series - each ensemble has its own data in ensemble_matrix
+    // This will be handled in initializeEnsembleParticles function
     
     // Create source from EKI configuration
     std::vector<Source> sources;
@@ -331,8 +343,12 @@ bool runEnsembleLDM(LDM& ldm, const std::vector<std::vector<float>>& ensemble_ma
         return false;
     }
     
-    // Save ensemble initialization log
-    saveEnsembleInitializationLog(Nens, emission_time_series, sources, nop_per_ensemble);
+    // Save ensemble initialization log with sample emission data
+    std::vector<float> sample_emission(time_intervals);
+    for (int t = 0; t < time_intervals; t++) {
+        sample_emission[t] = ensemble_matrix[t][0]; // Use first ensemble as sample
+    }
+    saveEnsembleInitializationLog(Nens, sample_emission, sources, nop_per_ensemble);
     
     std::cout << "  [5.5] Running ensemble simulation..." << std::endl;
     
@@ -347,7 +363,7 @@ bool runEnsembleLDM(LDM& ldm, const std::vector<std::vector<float>>& ensemble_ma
     std::cout << "  [5.7] Calculating ensemble observations..." << std::endl;
     
     static float ensemble_observations[100][24][3];
-    bool obs_success = calculateEnsembleObservations(ensemble_observations, ensemble_size, time_intervals);
+    bool obs_success = calculateEnsembleObservations(ensemble_observations, ensemble_size, time_intervals, ldm.part);
     
     if (!obs_success) {
         std::cerr << "  [5.7] Failed to calculate ensemble observations" << std::endl;
@@ -428,9 +444,21 @@ bool initializeEnsembleParticles(LDM& ldm, const std::vector<std::vector<float>>
                                 int time_intervals, int ensemble_size, const std::vector<Source>& sources) {
     
     std::cout << "  [ENSEMBLE] Initializing " << ensemble_size << " ensembles with " 
-              << (nop / ensemble_size) << " particles each..." << std::endl;
+              << "1000 particles each..." << std::endl;
     
-    const int nop_per_ensemble = nop / ensemble_size;
+    // Log EKI ensemble matrix sample data
+    std::cout << "  [EKI_MATRIX] Sample ensemble matrix data:" << std::endl;
+    for (int e = 0; e < std::min(5, ensemble_size); e++) {
+        std::cout << "    Ensemble " << e << ": ";
+        for (int t = 0; t < std::min(5, time_intervals); t++) {
+            std::cout << "T" << t << "=" << std::scientific << std::setprecision(2) 
+                     << ensemble_matrix[t][e] << " ";
+        }
+        std::cout << "... (total " << time_intervals << " time steps)" << std::endl;
+    }
+    std::cout << "    ... (total " << ensemble_size << " ensembles)" << std::endl;
+    
+    const int nop_per_ensemble = 1000;
     const Source& source = sources[0];
     const float source_x = (source.lon + 179.0f) / 0.5f;
     const float source_y = (source.lat + 90.0f) / 0.5f;
@@ -440,8 +468,31 @@ bool initializeEnsembleParticles(LDM& ldm, const std::vector<std::vector<float>>
     ldm.part.clear();
     ldm.part.reserve(nop);
     
+    // Create detailed initialization log file
+    auto now = std::chrono::system_clock::now();
+    auto time_t = std::chrono::system_clock::to_time_t(now);
+    auto tm = *std::localtime(&time_t);
+    
+    std::ostringstream timestamp;
+    timestamp << std::put_time(&tm, "%Y%m%d_%H%M%S");
+    
+    std::string detail_log_filename = "/home/jrpark/LDM-EKI/logs/integration_logs/ensemble_particle_details_" 
+                                    + timestamp.str() + ".csv";
+    
+    std::ofstream detail_log(detail_log_filename);
+    if (detail_log.is_open()) {
+        detail_log << "# Detailed EKI Ensemble Particle Initialization Log\n";
+        detail_log << "# Generated at: " << std::put_time(&tm, "%Y-%m-%d %H:%M:%S") << "\n";
+        detail_log << "# EKI Ensemble Matrix Dimensions: " << time_intervals << " x " << ensemble_size << "\n";
+        detail_log << "# Total particles: " << (ensemble_size * nop_per_ensemble) << "\n";
+        detail_log << "#\n";
+        detail_log << "ensemble_id,particle_idx,global_id,timeidx,time_step_index,eki_emission_rate,final_concentration,source_x,source_y,source_z\n";
+    }
+    
     // Initialize particles for each ensemble
     for (int e = 0; e < ensemble_size; e++) {
+        std::cout << "  [ENSEMBLE " << e << "] Initializing " << nop_per_ensemble << " particles..." << std::endl;
+        
         for (int i = 0; i < nop_per_ensemble; i++) {
             int global_idx = e * nop_per_ensemble + i;
             
@@ -472,8 +523,45 @@ bool initializeEnsembleParticles(LDM& ldm, const std::vector<std::vector<float>>
             particle.radi = g_mpi.particleSizes[mpiRank];
             particle.prho = g_mpi.particleDensities[mpiRank];
             
+            // Log detailed information for first 5 particles of first 3 ensembles
+            if (e < 3 && i < 5) {
+                std::cout << "    [DEBUG] E" << e << "_P" << i << ": global_id=" << particle.global_id 
+                         << " timeidx=" << particle.timeidx << " time_step=" << time_step_index 
+                         << " eki_rate=" << std::scientific << ensemble_emission_rate 
+                         << " conc=" << particle.concentrations[0] << std::endl;
+            }
+            
+            // Write to detailed log file
+            if (detail_log.is_open()) {
+                detail_log << e << "," << i << "," << particle.global_id << "," << particle.timeidx << ","
+                          << time_step_index << "," << std::scientific << std::setprecision(6) 
+                          << ensemble_emission_rate << "," << particle.concentrations[0] << ","
+                          << particle.x << "," << particle.y << "," << particle.z << "\n";
+            }
+            
             ldm.part.push_back(particle);
         }
+        
+        // Log ensemble statistics
+        if (e < 5 || e % 20 == 0) {
+            float total_conc = 0.0f;
+            int start_idx = e * nop_per_ensemble;
+            int end_idx = (e + 1) * nop_per_ensemble;
+            
+            for (int p = start_idx; p < end_idx; p++) {
+                total_conc += ldm.part[p].concentrations[0];
+            }
+            float mean_conc = total_conc / nop_per_ensemble;
+            
+            std::cout << "  [ENSEMBLE " << e << "] Mean concentration: " << std::scientific 
+                     << mean_conc << " (range: " << ldm.part[start_idx].concentrations[0] 
+                     << " to " << ldm.part[end_idx-1].concentrations[0] << ")" << std::endl;
+        }
+    }
+    
+    if (detail_log.is_open()) {
+        detail_log.close();
+        std::cout << "  [ENSEMBLE] Detailed initialization log saved: " << detail_log_filename << std::endl;
     }
     
     std::cout << "  [ENSEMBLE] Initialized " << ldm.part.size() << " particles across " 
@@ -535,7 +623,8 @@ void saveEnsembleParticleSnapshot(int timestep, const std::vector<LDM::LDMpart>&
 }
 
 bool calculateEnsembleObservations(float ensemble_observations[100][24][3], 
-                                  int ensemble_size, int time_intervals) {
+                                  int ensemble_size, int time_intervals, 
+                                  const std::vector<LDM::LDMpart>& particles) {
     
     std::cout << "  [ENSEMBLE] Calculating observations for " << ensemble_size 
               << " ensembles over " << time_intervals << " time intervals..." << std::endl;
@@ -563,68 +652,45 @@ bool calculateEnsembleObservations(float ensemble_observations[100][24][3],
         }
     }
     
-    // For now, use the final particle state to calculate ensemble observations
-    // TODO: In full implementation, we need time-resolved ensemble-separated data
+    // Use particle data directly from memory (much more efficient than CSV reading)
+    std::cout << "  [ENSEMBLE] Using " << particles.size() << " particles from simulation memory" << std::endl;
     
-    std::string particle_file = "/home/jrpark/LDM-EKI/logs/ldm_logs/particles_final.csv";
-    std::ifstream file(particle_file);
-    if (!file.is_open()) {
-        std::cerr << "[ERROR] Cannot open particle file: " << particle_file << std::endl;
-        return false;
-    }
+    // Count active particles per ensemble and check ensemble_id distribution
+    std::vector<int> active_counts(ensemble_size, 0);
+    std::vector<int> total_counts(ensemble_size, 0);
+    int total_active = 0;
     
-    std::string line;
-    std::getline(file, line); // Skip header
-    
-    std::vector<LDM::LDMpart> final_particles;
-    
-    // Read all particles
-    while (std::getline(file, line)) {
-        std::istringstream iss(line);
-        std::string token;
-        
-        LDM::LDMpart particle;
-        
-        // Parse CSV: particle_id,longitude,latitude,altitude,concentration,age,flag
-        int field = 0;
-        float particle_lon, particle_lat;
-        while (std::getline(iss, token, ',')) {
-            switch (field) {
-                case 0: particle.global_id = std::stoi(token); break;
-                case 1: particle_lon = std::stof(token); break; // longitude (already in degrees)
-                case 2: particle_lat = std::stof(token); break; // latitude (already in degrees)
-                case 3: particle.z = std::stof(token); break; // altitude
-                case 4: particle.concentrations[0] = std::stof(token); break;
-                case 5: particle.age = std::stof(token); break;
-                case 6: particle.flag = std::stoi(token); break;
+    for (const auto& particle : particles) {
+        if (particle.ensemble_id < ensemble_size) {
+            total_counts[particle.ensemble_id]++;
+            if (particle.flag == 1) {
+                active_counts[particle.ensemble_id]++;
+                total_active++;
             }
-            field++;
-        }
-        
-        // Store original coordinates
-        particle.x = particle_lon;
-        particle.y = particle_lat;
-        
-        // Determine ensemble ID from particle ID
-        int ensemble_id = (particle.global_id - 1) / (1000 / ensemble_size);
-        if (ensemble_id >= ensemble_size) ensemble_id = ensemble_size - 1;
-        
-        particle.ensemble_id = ensemble_id;
-        
-        if (particle.flag == 1) { // Only active particles
-            final_particles.push_back(particle);
         }
     }
     
-    std::cout << "  [ENSEMBLE] Loaded " << final_particles.size() << " active particles from final state" << std::endl;
+    std::cout << "  [ENSEMBLE] Particle distribution by ensemble:" << std::endl;
+    for (int e = 0; e < 5; e++) {
+        std::cout << "    Ensemble " << e << ": " << total_counts[e] << " total, " 
+                 << active_counts[e] << " active" << std::endl;
+    }
+    
+    std::cout << "  [ENSEMBLE] Total active particles: " << total_active << " out of " << particles.size() << std::endl;
     
     // Calculate receptor concentrations for each ensemble
-    for (const auto& particle : final_particles) {
-        int e = particle.ensemble_id;
+    // Note: At simulation end, all particles should contribute regardless of flag
+    for (const auto& particle : particles) {
+        // Force all particles to be considered active for final observation calculation
+        // if (particle.flag != 1) continue; // Skip inactive particles
         
-        // Particle coordinates are already in degrees
-        float particle_lon = particle.x;
-        float particle_lat = particle.y;
+        int e = particle.ensemble_id;
+        if (e >= ensemble_size) continue; // Skip invalid ensemble IDs
+        
+        // Convert particle coordinates from grid to degrees
+        // particle.x and particle.y are in grid coordinates, need to convert to lon/lat
+        float particle_lon = (particle.x * 0.5f) - 179.0f; // Convert grid x to longitude
+        float particle_lat = (particle.y * 0.5f) - 90.0f;  // Convert grid y to latitude
         
         // Calculate contribution to each receptor using simple rectangular grid
         for (int r = 0; r < 3; r++) {
@@ -633,9 +699,12 @@ bool calculateEnsembleObservations(float ensemble_observations[100][24][3],
             float dlon = abs(particle_lon - receptors[r].lon);
             
             // Debug: Log some calculations for verification
-            if (e == 0 && r == 0) {
+            static int debug_count = 0;
+            if (e == 0 && r == 0 && debug_count < 5) {
+                debug_count++;
                 std::cout << "  [DEBUG] Particle " << particle.global_id 
-                         << ": pos(" << particle_lon << "," << particle_lat 
+                         << ": ensemble=" << e << " timeidx=" << particle.timeidx
+                         << " pos(" << particle_lon << "," << particle_lat 
                          << ") receptor(" << receptors[r].lon << "," << receptors[r].lat
                          << ") dlat=" << dlat << " dlon=" << dlon << " concentration=" << particle.concentrations[0] << std::endl;
             }
@@ -644,8 +713,14 @@ bool calculateEnsembleObservations(float ensemble_observations[100][24][3],
             if (dlat <= 5.0f && dlon <= 5.0f) { // 10-degree area (±5 degrees from receptor)
                 float contribution = particle.concentrations[0];
                 
-                // Apply contribution to all time steps
-                for (int t = 0; t < time_intervals; t++) {
+                // Calculate which time step this particle corresponds to based on timeidx
+                // Each ensemble has 1000 particles with timeidx 0-999
+                // Map timeidx to time intervals (0-23)
+                int particle_time_step = (particle.timeidx * time_intervals) / 1000;
+                if (particle_time_step >= time_intervals) particle_time_step = time_intervals - 1;
+                
+                // Only apply contribution from this time step onwards (particle activated)
+                for (int t = particle_time_step; t < time_intervals; t++) {
                     ensemble_observations[e][t][r] += contribution;
                 }
             }

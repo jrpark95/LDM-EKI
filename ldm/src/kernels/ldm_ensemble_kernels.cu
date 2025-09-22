@@ -11,10 +11,14 @@ __global__ void update_particle_flags_ensembles(LDM::LDMpart* d_part,
     
     if (idx >= total) return;
     
-    int local_i = idx % nop_per_ensemble;
-    int maxLocal = static_cast<int>(nop_per_ensemble * activationRatio);
+    // Use particle's timeidx to determine activation
+    // activationRatio ranges from 0.0 to 1.0 as simulation progresses
+    // Map particle's timeidx to simulation timeline
+    // Last particle (timeidx = nop_per_ensemble-1) should activate at simulation end
+    float particle_activation_ratio = (float)d_part[idx].timeidx / (float)(nop_per_ensemble - 1);
     
-    d_part[idx].flag = (local_i < maxLocal) ? 1 : 0;
+    // Activate particle if current simulation progress >= particle's activation ratio
+    d_part[idx].flag = (activationRatio >= particle_activation_ratio) ? 1 : 0;
 }
 
 // Sanity check kernel implementation
