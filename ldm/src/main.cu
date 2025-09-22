@@ -3,6 +3,9 @@
 #include "ldm_eki.cuh"
 #include "ldm_eki_logger.cuh"
 #include <cstdio>  // for remove() function
+#include <fstream>
+#include <sstream>
+#include <iomanip>
 //#include "ldm_cram.cuh"
 //#include "cram_runtime.h"
 
@@ -12,6 +15,9 @@ int g_turb_switch = 0;    // Default values, overwritten by setting.txt
 int g_drydep = 0;
 int g_wetdep = 0; 
 int g_raddecay = 0;       // Radioactive decay disabled for simple simulation
+
+// Function declaration
+void saveEnsembleInitializationLog(int Nens, const std::vector<float>& emission_time_series, const std::vector<Source>& sources, int nop_per_ensemble);
 
 
 int main(int argc, char** argv) {
@@ -91,6 +97,9 @@ int main(int argc, char** argv) {
         }
         
         std::cout << "[INFO] Ensemble particle initialization completed successfully" << std::endl;
+        
+        // Save detailed initialization log
+        saveEnsembleInitializationLog(Nens, emission_time_series, sources, nop_per_ensemble);
     } else {
         std::cout << "[INFO] Single ensemble mode" << std::endl;
         ldm.initializeParticles();
@@ -214,4 +223,63 @@ int main(int argc, char** argv) {
     
 
     return 0;
+}
+
+// Function to save ensemble initialization log
+void saveEnsembleInitializationLog(int Nens, 
+                                   const std::vector<float>& emission_time_series,
+                                   const std::vector<Source>& sources, 
+                                   int nop_per_ensemble) {
+    // Create timestamp
+    auto now = std::chrono::system_clock::now();
+    auto time_t = std::chrono::system_clock::to_time_t(now);
+    auto tm = *std::localtime(&time_t);
+    
+    std::ostringstream timestamp;
+    timestamp << std::put_time(&tm, "%Y%m%d_%H%M%S");
+    
+    // Create filename
+    std::string filename = "/home/jrpark/LDM-EKI/logs/integration_logs/ensemble_initialization_" 
+                          + timestamp.str() + ".csv";
+    
+    std::ofstream logFile(filename);
+    if (!logFile.is_open()) {
+        std::cerr << "[ERROR] Failed to create ensemble initialization log: " << filename << std::endl;
+        return;
+    }
+    
+    const int T = static_cast<int>(emission_time_series.size());
+    const Source& source = sources[0];
+    const float source_x = (source.lon + 179.0f) / 0.5f;
+    const float source_y = (source.lat + 90.0f) / 0.5f;
+    const float source_z = source.height;
+    
+    // Write header
+    logFile << "# Ensemble Initialization Log - Real LDM Execution\n";
+    logFile << "# Generated at: " << std::put_time(&tm, "%Y-%m-%d %H:%M:%S") << "\n";
+    logFile << "# Number of ensembles: " << Nens << "\n";
+    logFile << "# Particles per ensemble: " << nop_per_ensemble << "\n";
+    logFile << "# Emission time steps: " << T << "\n";
+    logFile << "# Total particles: " << (Nens * nop_per_ensemble) << "\n";
+    logFile << "# Source location: lon=" << source.lon << ", lat=" << source.lat << ", height=" << source.height << "\n";
+    logFile << "#\n";
+    logFile << "# Format: Ensemble_ID,Particle_Global_ID,Particle_Local_ID,Time_Step_Index,Emission_Concentration,Source_X_Grid,Source_Y_Grid,Source_Z\n";
+    logFile << "Ensemble_ID,Particle_Global_ID,Particle_Local_ID,Time_Step_Index,Emission_Concentration,Source_X_Grid,Source_Y_Grid,Source_Z\n";
+    
+    // Write particle initialization data for all 100 ensembles
+    for (int e = 0; e < Nens; ++e) {
+        for (int i = 0; i < nop_per_ensemble; ++i) {
+            const int time_step_index = (i * T) / nop_per_ensemble;
+            const float emission_concentration = emission_time_series[time_step_index];
+            const int global_id = e * nop_per_ensemble + i + 1;
+            
+            logFile << e << "," << global_id << "," << i << "," << time_step_index << ","
+                   << std::scientific << std::setprecision(6) << emission_concentration << ","
+                   << std::fixed << std::setprecision(3) << source_x << ","
+                   << source_y << "," << source_z << "\n";
+        }
+    }
+    
+    logFile.close();
+    std::cout << "[INFO] Ensemble initialization log saved: " << filename << std::endl;
 }

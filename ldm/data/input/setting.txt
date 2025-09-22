@@ -2,7 +2,7 @@
 Time_end(s): 21600.0
 dt(s): 100.0
 Plot_output_freq: 3
-Total_number_of_particle: 10000
+Total_number_of_particle: 1000
 
 # Calculation Mode for Sigma (Rural = 1, Urban = 0)
 Rural/Urban: 1

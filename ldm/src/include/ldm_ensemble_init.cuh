@@ -7,9 +7,10 @@
 #include <chrono>
 #include <cassert>
 #include <cuda_runtime.h>
+#include "ldm.cuh"
 
 // Forward declarations to avoid circular dependency
-class LDM;
+struct Source;
 
 // Debug logging control
 #ifdef LDM_DEBUG_ENS
@@ -77,5 +78,9 @@ public:
 
 // Forward declarations need to be complete for kernel use
 class LDM;
+
+// Function declaration for ensemble initialization logging
+void saveEnsembleInitializationLog(int Nens, int nop_per_ensemble, 
+                                   const std::vector<float>& emission_flat, int T);
 
 #endif // LDM_ENSEMBLE_INIT_CUH

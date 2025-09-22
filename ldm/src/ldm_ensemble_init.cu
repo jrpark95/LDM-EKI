@@ -1,19 +1,13 @@
-#include "ldm.cuh"
-#include "ldm_ensemble_init.cuh"
-#include "ldm_eki.cuh"
-#include "ldm_nuclides.cuh"
-#include <algorithm>
+// Forward declarations to avoid including full headers
+class EKIConfig;
+
+// Only function definitions for separate compilation
+#include <fstream>
+#include <sstream>
+#include <chrono>
 #include <iomanip>
-
-// Compilation: nvcc -O3 -std=c++17 -arch=sm_80 ldm_ensemble_init.cu -o ldm_ensemble_init
-
-// Deterministic RNG for ensembles
-uint64_t splitmix64(uint64_t& z) {
-    z += 0x9e3779b97f4a7c15;
-    z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9;
-    z = (z ^ (z >> 27)) * 0x94d049bb133111eb;
-    return z ^ (z >> 31);
-}
+#include <iostream>
+#include <string>
 
 bool LDM::initializeParticlesEnsembles(int Nens,
                                       const std::vector<float>& emission_time_series,
@@ -209,9 +203,68 @@ bool LDM::initializeParticlesEnsemblesFlat(int Nens,
                  "2) Parallelize CPU initialization, 3) Use multiple streams for large transfers");
     }
     
+    // Save initialization values to integration_logs
+    saveEnsembleInitializationLog(Nens, nop_per_ensemble, emission_flat, T);
+    
     std::cout << "[INFO] Ensemble initialization successful: " << Nens << " ensembles, "
               << nop_per_ensemble << " particles each, total " << d_nop_total << " particles" << std::endl;
     
     return true;
+}
+
+// Function to save ensemble initialization log
+void saveEnsembleInitializationLog(int Nens, int nop_per_ensemble, 
+                                   const std::vector<float>& emission_flat, int T) {
+    // Create timestamp
+    auto now = std::chrono::system_clock::now();
+    auto time_t = std::chrono::system_clock::to_time_t(now);
+    auto tm = *std::localtime(&time_t);
+    
+    std::ostringstream timestamp;
+    timestamp << std::put_time(&tm, "%Y%m%d_%H%M%S");
+    
+    // Create filename
+    std::string filename = "/home/jrpark/LDM-EKI/logs/integration_logs/ensemble_initialization_" 
+                          + timestamp.str() + ".csv";
+    
+    std::ofstream logFile(filename);
+    if (!logFile.is_open()) {
+        std::cerr << "[ERROR] Failed to create ensemble initialization log: " << filename << std::endl;
+        return;
+    }
+    
+    // Write header
+    logFile << "# Ensemble Initialization Log\n";
+    logFile << "# Generated at: " << std::put_time(&tm, "%Y-%m-%d %H:%M:%S") << "\n";
+    logFile << "# Number of ensembles: " << Nens << "\n";
+    logFile << "# Particles per ensemble: " << nop_per_ensemble << "\n";
+    logFile << "# Time steps: " << T << "\n";
+    logFile << "# Total particles: " << (Nens * nop_per_ensemble) << "\n";
+    logFile << "#\n";
+    logFile << "# Format: Ensemble_ID,Particle_ID,Time_Step,Emission_Concentration,Source_X,Source_Y,Source_Z\n";
+    logFile << "Ensemble_ID,Particle_ID,Time_Step,Emission_Concentration,Source_X,Source_Y,Source_Z\n";
+    
+    // Write particle initialization data
+    for (int e = 0; e < Nens; ++e) {
+        for (int i = 0; i < nop_per_ensemble; ++i) {
+            const int time_step_index = (i * T) / nop_per_ensemble;
+            const float base_concentration = emission_flat[e * T + time_step_index];
+            const int global_id = e * nop_per_ensemble + i + 1;
+            
+            // Use actual source positions from EKI config
+            EKIConfig* ekiConfig = EKIConfig::getInstance();
+            const float source_x = (ekiConfig->getSourceLon() + 179.0f) / 0.5f;
+            const float source_y = (ekiConfig->getSourceLat() + 90.0f) / 0.5f;
+            const float source_z = ekiConfig->getSourceAlt();
+            
+            logFile << e << "," << global_id << "," << time_step_index << ","
+                   << std::scientific << std::setprecision(6) << base_concentration << ","
+                   << std::fixed << std::setprecision(3) << source_x << ","
+                   << source_y << "," << source_z << "\n";
+        }
+    }
+    
+    logFile.close();
+    std::cout << "[INFO] Ensemble initialization log saved: " << filename << std::endl;
 }
 
