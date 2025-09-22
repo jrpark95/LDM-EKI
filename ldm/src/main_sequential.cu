@@ -17,22 +17,10 @@ int g_raddecay = 0;       // Radioactive decay disabled for simple simulation
 // Function declarations
 void saveEnsembleInitializationLog(int Nens, const std::vector<float>& emission_time_series, const std::vector<Source>& sources, int nop_per_ensemble);
 
-// Minimal stub for ensemble function to resolve linking
-__global__ void update_particle_flags_ensembles(LDM::LDMpart* d_part, int nop_per_ensemble, int Nens, float activationRatio) {
-    // Simple stub - just call regular flag update for now
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx >= nop_per_ensemble * Nens) return;
-    
-    // Simple activation logic
-    if (d_part[idx].timeidx * 900.0f <= activationRatio * 86400.0f) {
-        d_part[idx].flag = 1;
-    }
-}
-
 // Sequential workflow functions
 bool runSingleModeLDM(LDM& ldm);
 bool runPostProcessing();
-bool runEKIEstimationStep();
+bool runEKIEstimation();
 bool loadEKIEnsembleResults(std::vector<std::vector<float>>& ensemble_matrix, int& time_intervals, int& ensemble_size);
 bool runEnsembleLDM(LDM& ldm, const std::vector<std::vector<float>>& ensemble_matrix, int time_intervals, int ensemble_size);
 
@@ -113,7 +101,7 @@ int main(int argc, char** argv) {
     // =================================================================
     std::cout << "\n[STEP 3] Starting EKI Estimation..." << std::endl;
     
-    if (!runEKIEstimationStep()) {
+    if (!runEKIEstimation()) {
         std::cerr << "[ERROR] EKI estimation failed" << std::endl;
         return 1;
     }
@@ -215,7 +203,7 @@ bool runPostProcessing() {
     return true;
 }
 
-bool runEKIEstimationStep() {
+bool runEKIEstimation() {
     std::cout << "  [3.1] Executing EKI estimation algorithm..." << std::endl;
     
     printSimulationStatus("Running EKI estimation...");
@@ -291,10 +279,14 @@ bool runEnsembleLDM(LDM& ldm, const std::vector<std::vector<float>>& ensemble_ma
     
     std::cout << "  [5.4] Initializing ensemble particles..." << std::endl;
     
-    // For now, use regular particle initialization
-    // TODO: Implement ensemble-specific initialization
-    std::cout << "  [5.4] Using simplified particle initialization (ensemble method pending)" << std::endl;
-    ldm.initializeParticles();
+    // Initialize particles using ensemble method
+    bool ensemble_init_success = ldm.initializeParticlesEnsembles(
+        Nens, emission_time_series, sources, nop_per_ensemble);
+        
+    if (!ensemble_init_success) {
+        std::cerr << "  [5.4] Ensemble particle initialization failed" << std::endl;
+        return false;
+    }
     
     // Save ensemble initialization log
     saveEnsembleInitializationLog(Nens, emission_time_series, sources, nop_per_ensemble);

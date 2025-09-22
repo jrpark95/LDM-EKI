@@ -20,9 +20,15 @@ OBJ_PATH = .$(PATH_SEP)objectfiles
 
 TARGET = ldm_main
 TARGET_REFACTORED = ldm_refactored
+TARGET_SEQUENTIAL = ldm_sequential
 
 SRCS = src/main.cu src/ldm_eki.cu src/ldm_eki_logger.cu src/ldm_ensemble_init.cu src/kernels/ldm_ensemble_kernels.cu
 SRCS_REFACTORED = src/main_refactored.cu src/ldm_integration.cu src/ldm_eki.cu src/ldm_eki_logger.cu src/ldm_ensemble_init.cu src/kernels/ldm_ensemble_kernels.cu
+SRCS_SEQUENTIAL = src/main.cu src/ldm_eki.cu src/ldm_eki_logger.cu
+OBJS_SEQUENTIAL = $(addprefix $(OBJ_PATH)$(PATH_SEP), $(SRCS_SEQUENTIAL:.cu=.o))
+
+$(TARGET_SEQUENTIAL): $(OBJS_SEQUENTIAL)
+	$(NVCC) $(NVCCFLAGS) -o $@ $(OBJS_SEQUENTIAL)
 OBJS = $(addprefix $(OBJ_PATH)$(PATH_SEP), $(SRCS:.cu=.o))
 OBJS_REFACTORED = $(addprefix $(OBJ_PATH)$(PATH_SEP), $(SRCS_REFACTORED:.cu=.o))
 

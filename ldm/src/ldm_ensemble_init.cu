@@ -1,13 +1,20 @@
-// Forward declarations to avoid including full headers
-class EKIConfig;
-
-// Only function definitions for separate compilation
+#include "ldm_ensemble_init.cuh"
+#include "ldm_eki.cuh"
+#include "ldm_nuclides.cuh"
+#include <algorithm>
+#include <iomanip>
 #include <fstream>
 #include <sstream>
-#include <chrono>
-#include <iomanip>
-#include <iostream>
-#include <string>
+
+// Compilation: nvcc -O3 -std=c++17 -arch=sm_80 ldm_ensemble_init.cu -o ldm_ensemble_init
+
+// Deterministic RNG for ensembles
+uint64_t splitmix64(uint64_t& z) {
+    z += 0x9e3779b97f4a7c15;
+    z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9;
+    z = (z ^ (z >> 27)) * 0x94d049bb133111eb;
+    return z ^ (z >> 31);
+}
 
 bool LDM::initializeParticlesEnsembles(int Nens,
                                       const std::vector<float>& emission_time_series,
