@@ -15,12 +15,12 @@ int g_wetdep = 0;
 int g_raddecay = 0;       // Radioactive decay disabled for simple simulation
 
 // Function declarations
-void saveEnsembleInitializationLog(int Nens, const std::vector<float>& emission_time_series, const std::vector<Source>& sources, int nop_per_ensemble);
+// saveEnsembleInitializationLog is handled in ldm_ensemble_init.cu
 
 // Sequential workflow functions
 bool runSingleModeLDM(LDM& ldm);
 bool runPostProcessing();
-bool runEKIEstimation();
+bool runEKIEstimationSequential();
 bool loadEKIEnsembleResults(std::vector<std::vector<float>>& ensemble_matrix, int& time_intervals, int& ensemble_size);
 bool runEnsembleLDM(LDM& ldm, const std::vector<std::vector<float>>& ensemble_matrix, int time_intervals, int ensemble_size);
 
@@ -101,7 +101,7 @@ int main(int argc, char** argv) {
     // =================================================================
     std::cout << "\n[STEP 3] Starting EKI Estimation..." << std::endl;
     
-    if (!runEKIEstimation()) {
+    if (!runEKIEstimationSequential()) {
         std::cerr << "[ERROR] EKI estimation failed" << std::endl;
         return 1;
     }
@@ -203,7 +203,7 @@ bool runPostProcessing() {
     return true;
 }
 
-bool runEKIEstimation() {
+bool runEKIEstimationSequential() {
     std::cout << "  [3.1] Executing EKI estimation algorithm..." << std::endl;
     
     printSimulationStatus("Running EKI estimation...");
@@ -258,15 +258,8 @@ bool runEnsembleLDM(LDM& ldm, const std::vector<std::vector<float>>& ensemble_ma
     std::cout << "  [5.2] Ensemble configuration: " << Nens << " ensembles, " 
               << nop_per_ensemble << " particles each, total " << (Nens * nop_per_ensemble) << std::endl;
     
-    // Convert ensemble matrix to emission time series
-    std::cout << "  [5.3] Converting ensemble data to emission time series..." << std::endl;
-    
-    // For now, use the first ensemble's data as the emission time series
-    // In a full implementation, this would be more sophisticated
-    std::vector<float> emission_time_series;
-    for (int t = 0; t < time_intervals; t++) {
-        emission_time_series.push_back(ensemble_matrix[t][0]);  // Use first ensemble as baseline
-    }
+    // Use ensemble matrix directly (no conversion needed)
+    std::cout << "  [5.3] Using ensemble matrix with ensemble-specific emission rates..." << std::endl;
     
     // Create source from EKI configuration
     std::vector<Source> sources;
@@ -279,17 +272,16 @@ bool runEnsembleLDM(LDM& ldm, const std::vector<std::vector<float>>& ensemble_ma
     
     std::cout << "  [5.4] Initializing ensemble particles..." << std::endl;
     
-    // Initialize particles using ensemble method
+    // Initialize particles using ensemble method with full matrix
     bool ensemble_init_success = ldm.initializeParticlesEnsembles(
-        Nens, emission_time_series, sources, nop_per_ensemble);
+        Nens, ensemble_matrix, sources, nop_per_ensemble);
         
     if (!ensemble_init_success) {
         std::cerr << "  [5.4] Ensemble particle initialization failed" << std::endl;
         return false;
     }
     
-    // Save ensemble initialization log
-    saveEnsembleInitializationLog(Nens, emission_time_series, sources, nop_per_ensemble);
+    // Ensemble initialization log is saved automatically in initializeParticlesEnsembles
     
     std::cout << "  [5.5] Running ensemble simulation..." << std::endl;
     
@@ -304,59 +296,4 @@ bool runEnsembleLDM(LDM& ldm, const std::vector<std::vector<float>>& ensemble_ma
 }
 
 // Function to save ensemble initialization log
-void saveEnsembleInitializationLog(int Nens, 
-                                   const std::vector<float>& emission_time_series,
-                                   const std::vector<Source>& sources, 
-                                   int nop_per_ensemble) {
-    // Create timestamp
-    auto now = std::chrono::system_clock::now();
-    auto time_t = std::chrono::system_clock::to_time_t(now);
-    auto tm = *std::localtime(&time_t);
-    
-    std::ostringstream timestamp;
-    timestamp << std::put_time(&tm, "%Y%m%d_%H%M%S");
-    
-    // Create filename
-    std::string filename = "/home/jrpark/LDM-EKI/logs/integration_logs/ensemble_sequential_" 
-                          + timestamp.str() + ".csv";
-    
-    std::ofstream logFile(filename);
-    if (!logFile.is_open()) {
-        std::cerr << "[ERROR] Failed to create ensemble initialization log: " << filename << std::endl;
-        return;
-    }
-    
-    const int T = static_cast<int>(emission_time_series.size());
-    const Source& source = sources[0];
-    const float source_x = (source.lon + 179.0f) / 0.5f;
-    const float source_y = (source.lat + 90.0f) / 0.5f;
-    const float source_z = source.height;
-    
-    // Write header
-    logFile << "# Sequential LDM-EKI Ensemble Initialization Log\n";
-    logFile << "# Generated at: " << std::put_time(&tm, "%Y-%m-%d %H:%M:%S") << "\n";
-    logFile << "# Workflow: Single LDM → Post-processing → EKI → Ensemble LDM\n";
-    logFile << "# Number of ensembles: " << Nens << "\n";
-    logFile << "# Particles per ensemble: " << nop_per_ensemble << "\n";
-    logFile << "# Emission time steps: " << T << "\n";
-    logFile << "# Total particles: " << (Nens * nop_per_ensemble) << "\n";
-    logFile << "# Source location: lon=" << source.lon << ", lat=" << source.lat << ", height=" << source.height << "\n";
-    logFile << "#\n";
-    logFile << "Ensemble_ID,Total_Particles,Mean_Concentration,Source_Location\n";
-    
-    // Write ensemble summary data
-    for (int e = 0; e < Nens; ++e) {
-        float mean_concentration = 0.0f;
-        for (int t = 0; t < T; ++t) {
-            mean_concentration += emission_time_series[t];
-        }
-        mean_concentration /= T;
-        
-        logFile << e << "," << nop_per_ensemble << ","
-               << std::scientific << std::setprecision(6) << mean_concentration << ","
-               << "(" << source.lon << "," << source.lat << "," << source.height << ")\n";
-    }
-    
-    logFile.close();
-    std::cout << "  [5.4] Ensemble initialization log saved: " << filename << std::endl;
-}
+// Function removed - ensemble initialization logging is handled in ldm_ensemble_init.cu

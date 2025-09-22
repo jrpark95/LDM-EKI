@@ -17,16 +17,18 @@ uint64_t splitmix64(uint64_t& z) {
 }
 
 bool LDM::initializeParticlesEnsembles(int Nens,
-                                      const std::vector<float>& emission_time_series,
+                                      const std::vector<std::vector<float>>& ensemble_matrix,
                                       const std::vector<Source>& sources,
                                       int nop_per_ensemble) {
     
-    // Create flattened emission data (replicate same series for all ensembles)
-    const int T = static_cast<int>(emission_time_series.size());
+    // Convert 2D ensemble matrix to flattened format
+    const int T = static_cast<int>(ensemble_matrix.size());
     std::vector<float> emission_flat(Nens * T);
+    
+    // Apply ensemble-specific emission rates
     for (int e = 0; e < Nens; ++e) {
         for (int t = 0; t < T; ++t) {
-            emission_flat[e * T + t] = emission_time_series[t];
+            emission_flat[e * T + t] = ensemble_matrix[t][e];  // Use ensemble-specific values
         }
     }
     
@@ -93,11 +95,11 @@ bool LDM::initializeParticlesEnsemblesFlat(int Nens,
         EnsembleRNG::XORShift128Plus rng(seed_e);
         
         for (int i = 0; i < nop_per_ensemble; ++i) {
-            // Calculate time step index for this particle
-            const int time_step_index = (i * T) / nop_per_ensemble;
-            assert(time_step_index >= 0 && time_step_index < T);
+            // Calculate time step index for this particle (0-23)
+            int time_step_index = (i * T) / nop_per_ensemble;
+            if (time_step_index >= T) time_step_index = T - 1;
             
-            // Get emission concentration: emission_flat[e*T + time_step_index]
+            // Get ensemble-specific emission concentration for this time step
             const float base_concentration = emission_flat[e * T + time_step_index];
             
             // Generate random radius using normal distribution

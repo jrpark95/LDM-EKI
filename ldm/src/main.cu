@@ -626,29 +626,25 @@ bool calculateEnsembleObservations(float ensemble_observations[100][24][3],
         float particle_lon = particle.x;
         float particle_lat = particle.y;
         
-        // Calculate contribution to each receptor
+        // Calculate contribution to each receptor using simple rectangular grid
         for (int r = 0; r < 3; r++) {
-            // Simple distance-based contribution (Gaussian plume approximation)
-            float dlat = particle_lat - receptors[r].lat;
-            float dlon = particle_lon - receptors[r].lon;
-            float distance = sqrt(dlat * dlat + dlon * dlon) * 111000.0f; // Convert degrees to meters
+            // Simple rectangular grid check (10 degrees as specified)
+            float dlat = abs(particle_lat - receptors[r].lat);
+            float dlon = abs(particle_lon - receptors[r].lon);
             
-            // Debug: Log some distance calculations for verification
+            // Debug: Log some calculations for verification
             if (e == 0 && r == 0) {
                 std::cout << "  [DEBUG] Particle " << particle.global_id 
                          << ": pos(" << particle_lon << "," << particle_lat 
                          << ") receptor(" << receptors[r].lon << "," << receptors[r].lat
-                         << ") distance=" << distance << "m concentration=" << particle.concentrations[0] << std::endl;
+                         << ") dlat=" << dlat << " dlon=" << dlon << " concentration=" << particle.concentrations[0] << std::endl;
             }
             
-            if (distance < 100000.0f) { // Within 100km
-                float sigma = 10000.0f; // 10km standard deviation (more realistic)
-                float contribution = particle.concentrations[0] * 
-                                   exp(-0.5f * (distance * distance) / (sigma * sigma)) / 
-                                   (sigma * sqrt(2.0f * M_PI));
+            // Check if particle is within 10-degree rectangular grid
+            if (dlat <= 5.0f && dlon <= 5.0f) { // 10-degree area (±5 degrees from receptor)
+                float contribution = particle.concentrations[0];
                 
-                // For now, apply same contribution to all time steps
-                // TODO: Implement proper time-resolved calculation
+                // Apply contribution to all time steps
                 for (int t = 0; t < time_intervals; t++) {
                     ensemble_observations[e][t][r] += contribution;
                 }

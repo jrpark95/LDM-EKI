@@ -364,7 +364,7 @@ public:
     
     // Ensemble initialization methods  
     bool initializeParticlesEnsembles(int Nens,
-                                     const std::vector<float>& emission_time_series,
+                                     const std::vector<std::vector<float>>& ensemble_matrix,
                                      const std::vector<Source>& sources,
                                      int nop_per_ensemble);
     
