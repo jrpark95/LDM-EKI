@@ -315,8 +315,8 @@ bool runEnsembleLDM(LDM& ldm, const std::vector<std::vector<float>>& ensemble_ma
     std::cout << "  [5.2] Ensemble configuration: " << Nens << " ensembles, " 
               << nop_per_ensemble << " particles each, total " << (Nens * nop_per_ensemble) << std::endl;
     
-    // Update global nop to match total ensemble particles
-    nop = Nens * nop_per_ensemble;
+    // Set ensemble total particles (enop = nop * Nens)
+    enop = nop * Nens;
     
     // The ensemble matrix already contains ensemble-specific data
     std::cout << "  [5.3] Using ensemble-specific emission data..." << std::endl;
@@ -474,7 +474,7 @@ bool initializeEnsembleParticles(LDM& ldm, const std::vector<std::vector<float>>
     
     // Clear existing particles
     ldm.part.clear();
-    ldm.part.reserve(nop);
+    ldm.part.reserve(enop);  // Use enop for ensemble mode
     
     // Create detailed initialization log file
     auto now = std::chrono::system_clock::now();

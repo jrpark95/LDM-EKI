@@ -137,7 +137,8 @@ void LDM::loadSimulationConfiguration(){
     if (err != cudaSuccess) printf("Error copying wetdep to symbol: %s\n", cudaGetErrorString(err));
     err = cudaMemcpyToSymbol(d_raddecay, &g_raddecay, sizeof(int));
     if (err != cudaSuccess) printf("Error copying raddecay to symbol: %s\n", cudaGetErrorString(err));
-    err = cudaMemcpyToSymbol(d_nop, &nop, sizeof(int));
+    int particles_for_kernel = ensemble_mode_active ? enop : nop;
+    err = cudaMemcpyToSymbol(d_nop, &particles_for_kernel, sizeof(int));
     if (err != cudaSuccess) printf("Error copying to symbol: %s\n", cudaGetErrorString(err));
     err = cudaMemcpyToSymbol(d_isRural, &isRural, sizeof(bool));
     if (err != cudaSuccess) printf("Error copying to symbol: %s\n", cudaGetErrorString(err));

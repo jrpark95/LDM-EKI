@@ -3,7 +3,8 @@
 
 int LDM::countActiveParticles(){
     int count = 0;
-    for(int i = 0; i < nop; ++i) if(part[i].flag == 1) count++;
+    int total_particles = ensemble_mode_active ? enop : nop;
+    for(int i = 0; i < total_particles; ++i) if(part[i].flag == 1) count++;
     return count;
 }
 
@@ -15,11 +16,16 @@ void LDM::swapByteOrder(float& value){
 
 void LDM::outputParticlesBinaryMPI(int timestep){
 
-    cudaMemcpy(part.data(), d_part, nop * sizeof(LDMpart), cudaMemcpyDeviceToHost);
+    int total_particles = ensemble_mode_active ? enop : nop;
+    std::cout << "[DEBUG_VTK] timestep=" << timestep << " ensemble_mode=" << ensemble_mode_active 
+              << " nop=" << nop << " enop=" << enop << " total_particles=" << total_particles << std::endl;
+    
+    cudaMemcpy(part.data(), d_part, total_particles * sizeof(LDMpart), cudaMemcpyDeviceToHost);
     int numa = 0;
     int numb = 0;
 
     int part_num = countActiveParticles();
+    std::cout << "[DEBUG_VTK] active_particles=" << part_num << std::endl;
 
     // Debug output disabled for release
 
@@ -54,7 +60,7 @@ void LDM::outputParticlesBinaryMPI(int timestep){
 
     vtkFile << "POINTS " << part_num << " float\n";
     float zsum = 0.0;
-    for (int i = 0; i < nop; ++i){
+    for (int i = 0; i < total_particles; ++i){
         if(!part[i].flag) continue;
         // float x = part[i].x;
         // float y = part[i].y;
@@ -79,7 +85,7 @@ void LDM::outputParticlesBinaryMPI(int timestep){
     vtkFile << "POINT_DATA " << part_num << "\n";
     vtkFile << "SCALARS u_wind float 1\n";
     vtkFile << "LOOKUP_TABLE default\n";
-    for (int i = 0; i < nop; ++i){
+    for (int i = 0; i < enop; ++i){
         if(!part[i].flag) continue;
         float vval = part[i].u_wind;
         swapByteOrder(vval); 
@@ -88,7 +94,7 @@ void LDM::outputParticlesBinaryMPI(int timestep){
 
     vtkFile << "SCALARS v_wind float 1\n"; 
     vtkFile << "LOOKUP_TABLE default\n";
-    for (int i = 0; i < nop; ++i){
+    for (int i = 0; i < enop; ++i){
         if(!part[i].flag) continue;
         float vval = part[i].v_wind;
         swapByteOrder(vval); 
@@ -97,7 +103,7 @@ void LDM::outputParticlesBinaryMPI(int timestep){
 
     vtkFile << "SCALARS w_wind float 1\n"; 
     vtkFile << "LOOKUP_TABLE default\n";
-    for (int i = 0; i < nop; ++i){
+    for (int i = 0; i < enop; ++i){
         if(!part[i].flag) continue;
         float vval = part[i].w_wind;
         swapByteOrder(vval); 
@@ -106,7 +112,7 @@ void LDM::outputParticlesBinaryMPI(int timestep){
 
     vtkFile << "SCALARS virtual_dist float 1\n";
     vtkFile << "LOOKUP_TABLE default\n";
-    for (int i = 0; i < nop; ++i){
+    for (int i = 0; i < enop; ++i){
         if(!part[i].flag) continue;
         float vval = part[i].virtual_distance;
         swapByteOrder(vval); 
@@ -115,7 +121,7 @@ void LDM::outputParticlesBinaryMPI(int timestep){
 
     vtkFile << "SCALARS Q float 1\n";
     vtkFile << "LOOKUP_TABLE default\n";
-    for (int i = 0; i < nop; ++i){
+    for (int i = 0; i < enop; ++i){
         if(!part[i].flag) continue;
         float vval = part[i].conc;
         swapByteOrder(vval); 
@@ -140,11 +146,11 @@ void LDM::outputParticlesBinaryMPI(int timestep){
 // New function for all ensembles VTK output in one file
 void LDM::outputEnsembleParticlesBinaryMPI(int timestep, int ensemble_id){
     
-    cudaMemcpy(part.data(), d_part, nop * sizeof(LDMpart), cudaMemcpyDeviceToHost);
+    cudaMemcpy(part.data(), d_part, enop * sizeof(LDMpart), cudaMemcpyDeviceToHost);
     
     // Count all active particles from all ensembles
     int part_num = 0;
-    for (int i = 0; i < nop; ++i) {
+    for (int i = 0; i < enop; ++i) {
         if (part[i].flag == 1) {
             part_num++;
         }
@@ -184,7 +190,7 @@ void LDM::outputEnsembleParticlesBinaryMPI(int timestep, int ensemble_id){
 
     vtkFile << "POINTS " << part_num << " float\n";
     float zsum = 0.0;
-    for (int i = 0; i < nop; ++i){
+    for (int i = 0; i < enop; ++i){
         if(!part[i].flag) continue;
         
         float x = -179.0 + part[i].x*0.5;
@@ -206,7 +212,7 @@ void LDM::outputEnsembleParticlesBinaryMPI(int timestep, int ensemble_id){
     // Ensemble ID as scalar field to distinguish different ensembles
     vtkFile << "SCALARS ensemble_id int 1\n";
     vtkFile << "LOOKUP_TABLE default\n";
-    for (int i = 0; i < nop; ++i){
+    for (int i = 0; i < enop; ++i){
         if(!part[i].flag) continue;
         int eid = part[i].ensemble_id;
         // Convert to big endian for VTK
@@ -218,7 +224,7 @@ void LDM::outputEnsembleParticlesBinaryMPI(int timestep, int ensemble_id){
     
     vtkFile << "SCALARS u_wind float 1\n";
     vtkFile << "LOOKUP_TABLE default\n";
-    for (int i = 0; i < nop; ++i){
+    for (int i = 0; i < enop; ++i){
         if(!part[i].flag) continue;
         float vval = part[i].u_wind;
         swapByteOrder(vval); 
@@ -227,7 +233,7 @@ void LDM::outputEnsembleParticlesBinaryMPI(int timestep, int ensemble_id){
 
     vtkFile << "SCALARS v_wind float 1\n"; 
     vtkFile << "LOOKUP_TABLE default\n";
-    for (int i = 0; i < nop; ++i){
+    for (int i = 0; i < enop; ++i){
         if(!part[i].flag) continue;
         float vval = part[i].v_wind;
         swapByteOrder(vval); 
@@ -236,7 +242,7 @@ void LDM::outputEnsembleParticlesBinaryMPI(int timestep, int ensemble_id){
 
     vtkFile << "SCALARS w_wind float 1\n"; 
     vtkFile << "LOOKUP_TABLE default\n";
-    for (int i = 0; i < nop; ++i){
+    for (int i = 0; i < enop; ++i){
         if(!part[i].flag) continue;
         float vval = part[i].w_wind;
         swapByteOrder(vval); 
@@ -245,7 +251,7 @@ void LDM::outputEnsembleParticlesBinaryMPI(int timestep, int ensemble_id){
 
     vtkFile << "SCALARS virtual_dist float 1\n";
     vtkFile << "LOOKUP_TABLE default\n";
-    for (int i = 0; i < nop; ++i){
+    for (int i = 0; i < enop; ++i){
         if(!part[i].flag) continue;
         float vval = part[i].virtual_distance;
         swapByteOrder(vval); 
@@ -254,7 +260,7 @@ void LDM::outputEnsembleParticlesBinaryMPI(int timestep, int ensemble_id){
 
     vtkFile << "SCALARS Q float 1\n";
     vtkFile << "LOOKUP_TABLE default\n";
-    for (int i = 0; i < nop; ++i){
+    for (int i = 0; i < enop; ++i){
         if(!part[i].flag) continue;
         float vval = part[i].conc;
         swapByteOrder(vval); 

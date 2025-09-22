@@ -62,7 +62,8 @@ struct SimulationConfig {
     float timeEnd;
     float deltaTime;
     int outputFrequency;
-    int numParticles;
+    int numParticles;          // Single mode: 1000, Ensemble mode: unchanged
+    int ensembleParticles = 0; // Ensemble mode only: numParticles * Nens
     int gfsIndex = 0;
     bool isRural;
     bool isPasquillGifford;
@@ -120,6 +121,7 @@ using namespace Constants;
 #define dt (g_sim.deltaTime)
 #define freq_output (g_sim.outputFrequency)
 #define nop (g_sim.numParticles)
+#define enop (g_sim.ensembleParticles)  // Ensemble mode total particles
 #define gfs_idx (g_sim.gfsIndex)
 #define isRural (g_sim.isRural)
 #define isPG (g_sim.isPasquillGifford)
