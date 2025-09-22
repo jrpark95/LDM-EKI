@@ -269,6 +269,8 @@ public:
         int timeidx;                         // Essential: Time index for particle tracking
         int flag;                            // Essential: Particle active flag (heavily used)
         int dir;                             // Essential: Direction flag (used in reflection)
+        int ensemble_id;                     // Ensemble ID for multi-ensemble simulations
+        int global_id;                       // Global particle ID for tracking
 
         LDMpart() :
             x(0.0f), y(0.0f), z(0.0f), 
@@ -282,7 +284,7 @@ public:
             sigma_z(0.0f), sigma_h(0.0f),
             drydep_vel(0.0f), radi(0.0f), prho(0.0f),
             randState(0),
-            timeidx(0), flag(0), dir(1){
+            timeidx(0), flag(0), dir(1), ensemble_id(0), global_id(0){
                 // Initialize multi-nuclide concentrations to zero
                 for(int i = 0; i < N_NUCLIDES; i++) concentrations[i] = 0.0f;
             }
@@ -301,7 +303,7 @@ public:
                 sigma_z(0.0f), sigma_h(0.0f),
                 drydep_vel(_drydep_vel), radi(0.0f), prho(0.0f),
                 randState(0),
-                timeidx(_timeidx), flag(0), dir(1){
+                timeidx(_timeidx), flag(0), dir(1), ensemble_id(0), global_id(0){
                     // Initialize multi-nuclide concentrations to zero 
                     // (will be properly set in initialization functions)
                     for(int i = 0; i < N_NUCLIDES; i++) concentrations[i] = 0.0f;
@@ -321,7 +323,7 @@ public:
                 sigma_z(0.0f), sigma_h(0.0f),
                 drydep_vel(_drydep_vel), radi(radi), prho(prho),
                 randState(0),
-                timeidx(_timeidx), flag(0), dir(1){
+                timeidx(_timeidx), flag(0), dir(1), ensemble_id(0), global_id(0){
                     // Initialize multi-nuclide concentrations to zero 
                     // (will be properly set in initialization functions)
                     for(int i = 0; i < N_NUCLIDES; i++) concentrations[i] = 0.0f;
