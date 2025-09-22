@@ -137,6 +137,135 @@ void LDM::outputParticlesBinaryMPI(int timestep){
     vtkFile.close();
 }
 
+// New function for all ensembles VTK output in one file
+void LDM::outputEnsembleParticlesBinaryMPI(int timestep, int ensemble_id){
+    
+    cudaMemcpy(part.data(), d_part, nop * sizeof(LDMpart), cudaMemcpyDeviceToHost);
+    
+    // Count all active particles from all ensembles
+    int part_num = 0;
+    for (int i = 0; i < nop; ++i) {
+        if (part[i].flag == 1) {
+            part_num++;
+        }
+    }
+    
+    if (part_num == 0) {
+        std::cout << "[VTK] No active particles for any ensemble at timestep " << timestep << std::endl;
+        return;
+    }
+
+    std::ostringstream filenameStream;
+    std::string path;
+
+    // Create ensemble output directory for VTK files
+    path = "output_ens";
+
+    #ifdef _WIN32
+        _mkdir(path.c_str());
+        filenameStream << path << "\\" << "all_ensembles_plot_" << std::setfill('0') << std::setw(5) << timestep << ".vtk";
+    #else
+        mkdir(path.c_str(), 0777);
+        filenameStream << path << "/" << "all_ensembles_plot_" << std::setfill('0') << std::setw(5) << timestep << ".vtk";
+    #endif
+    std::string filename = filenameStream.str();
+
+    std::ofstream vtkFile(filename, std::ios::binary);
+
+    if (!vtkFile.is_open()){
+        std::cerr << "Cannot open file for writing: " << filename << std::endl;
+        return;
+    }
+
+    vtkFile << "# vtk DataFile Version 4.0\n";
+    vtkFile << "all ensembles particle data\n";
+    vtkFile << "BINARY\n";
+    vtkFile << "DATASET POLYDATA\n";
+
+    vtkFile << "POINTS " << part_num << " float\n";
+    float zsum = 0.0;
+    for (int i = 0; i < nop; ++i){
+        if(!part[i].flag) continue;
+        
+        float x = -179.0 + part[i].x*0.5;
+        float y = -90.0 + part[i].y*0.5;
+        float z = part[i].z/3000.0;
+        zsum += part[i].z;
+
+        swapByteOrder(x);
+        swapByteOrder(y);
+        swapByteOrder(z);
+
+        vtkFile.write(reinterpret_cast<char*>(&x), sizeof(float));
+        vtkFile.write(reinterpret_cast<char*>(&y), sizeof(float));
+        vtkFile.write(reinterpret_cast<char*>(&z), sizeof(float));
+    }
+
+    vtkFile << "POINT_DATA " << part_num << "\n";
+    
+    // Ensemble ID as scalar field to distinguish different ensembles
+    vtkFile << "SCALARS ensemble_id int 1\n";
+    vtkFile << "LOOKUP_TABLE default\n";
+    for (int i = 0; i < nop; ++i){
+        if(!part[i].flag) continue;
+        int eid = part[i].ensemble_id;
+        // Convert to big endian for VTK
+        char* ptr = reinterpret_cast<char*>(&eid);
+        std::swap(ptr[0], ptr[3]);
+        std::swap(ptr[1], ptr[2]);
+        vtkFile.write(reinterpret_cast<char*>(&eid), sizeof(int));
+    }
+    
+    vtkFile << "SCALARS u_wind float 1\n";
+    vtkFile << "LOOKUP_TABLE default\n";
+    for (int i = 0; i < nop; ++i){
+        if(!part[i].flag) continue;
+        float vval = part[i].u_wind;
+        swapByteOrder(vval); 
+        vtkFile.write(reinterpret_cast<char*>(&vval), sizeof(float));
+    }
+
+    vtkFile << "SCALARS v_wind float 1\n"; 
+    vtkFile << "LOOKUP_TABLE default\n";
+    for (int i = 0; i < nop; ++i){
+        if(!part[i].flag) continue;
+        float vval = part[i].v_wind;
+        swapByteOrder(vval); 
+        vtkFile.write(reinterpret_cast<char*>(&vval), sizeof(float));
+    }
+
+    vtkFile << "SCALARS w_wind float 1\n"; 
+    vtkFile << "LOOKUP_TABLE default\n";
+    for (int i = 0; i < nop; ++i){
+        if(!part[i].flag) continue;
+        float vval = part[i].w_wind;
+        swapByteOrder(vval); 
+        vtkFile.write(reinterpret_cast<char*>(&vval), sizeof(float));
+    }
+
+    vtkFile << "SCALARS virtual_dist float 1\n";
+    vtkFile << "LOOKUP_TABLE default\n";
+    for (int i = 0; i < nop; ++i){
+        if(!part[i].flag) continue;
+        float vval = part[i].virtual_distance;
+        swapByteOrder(vval); 
+        vtkFile.write(reinterpret_cast<char*>(&vval), sizeof(float));
+    }
+
+    vtkFile << "SCALARS Q float 1\n";
+    vtkFile << "LOOKUP_TABLE default\n";
+    for (int i = 0; i < nop; ++i){
+        if(!part[i].flag) continue;
+        float vval = part[i].conc;
+        swapByteOrder(vval); 
+        vtkFile.write(reinterpret_cast<char*>(&vval), sizeof(float));
+    }
+
+    vtkFile.close();
+    
+    std::cout << "[VTK] All ensembles VTK output: " << part_num << " particles at timestep " << timestep << std::endl;
+}
+
 // Log first particle's concentrations over time
 void LDM::log_first_particle_concentrations(int timestep, float currentTime) {
     // Copy particles from device to host

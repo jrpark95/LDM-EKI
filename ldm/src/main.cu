@@ -352,10 +352,18 @@ bool runEnsembleLDM(LDM& ldm, const std::vector<std::vector<float>>& ensemble_ma
     
     std::cout << "  [5.5] Running ensemble simulation..." << std::endl;
     
+    // Activate ensemble mode for LDM class
+    ldm.ensemble_mode_active = true;
+    ldm.current_Nens = Nens;
+    ldm.current_nop_per_ensemble = nop_per_ensemble;
+    
     // Run ensemble simulation
     ldm.startTimer();
     ldm.runSimulation();
     ldm.stopTimer();
+    
+    // Deactivate ensemble mode after simulation
+    ldm.ensemble_mode_active = false;
     
     std::cout << "  [5.6] Ensemble simulation completed" << std::endl;
     

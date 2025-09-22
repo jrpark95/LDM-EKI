@@ -137,7 +137,9 @@ __global__ void init_curand_states(LDM::LDMpart* d_part, float t0){
         int idx = threadIdx.x + blockIdx.x * blockDim.x;
         if (idx >= d_nop) return;
 
-        unsigned long long seed = static_cast<unsigned long long>((t0 + idx * 0.001f) * ULLONG_MAX);
+        // Add ensemble diversity to random seed
+        int ensemble_id = d_part[idx].ensemble_id;
+        unsigned long long seed = static_cast<unsigned long long>((t0 + idx * 0.001f + ensemble_id * 1000.0f) * ULLONG_MAX);
         curandState localState;
         curand_init(seed, idx, 0, &localState);
         d_part[idx].randState[0] = localState;
@@ -188,9 +190,13 @@ __global__ void move_part_by_wind_mpi(
 
         // Direct use of T_const instead of shared memory copy
 
-        unsigned long long seed = static_cast<unsigned long long>(t0 * ULLONG_MAX);  // Time-dependent seed like CRAM
+        // Add ensemble diversity to random seed
+        int ensemble_id = p.ensemble_id;
+        //unsigned long long seed = static_cast<unsigned long long>((t0 + idx * 0.001f + ensemble_id * 1000.0f) * ULLONG_MAX);  // Time + particle + ensemble dependent seed
+        //unsigned long long seed = static_cast<unsigned long long>((t0+(ensemble_id+373)*131+idx) * ULLONG_MAX);  // Time + particle + ensemble dependent seed
+        unsigned long long seed = static_cast<unsigned long long>(t0*ULLONG_MAX);
         curandState ss;
-        curand_init(seed, idx, 0, &ss);
+        curand_init(seed, idx*10000+ensemble_id, 0, &ss);
 
 
         int xidx, yidx;

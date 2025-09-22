@@ -395,6 +395,7 @@ public:
     int countActiveParticles();
     void swapByteOrder(float& value);
     void outputParticlesBinaryMPI(int timestep);  // Used in time_update_mpi
+    void outputEnsembleParticlesBinaryMPI(int timestep, int ensemble_id);  // Ensemble VTK output
 
     // // Concentration tracking functions
     void log_first_particle_concentrations(int timestep, float currentTime);

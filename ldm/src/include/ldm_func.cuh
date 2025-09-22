@@ -168,6 +168,7 @@ void LDM::runSimulation(){
 
         activationRatio = (currentTime) / time_end;
         t0 = (currentTime - static_cast<int>((currentTime-1e-5)/time_interval)*time_interval) / time_interval;
+        printf("t0 = %f\n", t0);
 
         // Recalculate blocks in case new particles were added
         blocks = (part.size() + threadsPerBlock - 1) / threadsPerBlock;
@@ -224,6 +225,14 @@ void LDM::runSimulation(){
 
             //particle_output_ASCII(timestep);
             outputParticlesBinaryMPI(timestep);
+            
+            // Ensemble VTK output for all ensembles in one file
+            if (ensemble_mode_active) {
+                printf("[VTK_DEBUG] Ensemble mode active, Nens=%d, outputting all ensembles\n", Nens);
+                outputEnsembleParticlesBinaryMPI(timestep, 0);  // ensemble_id parameter ignored now
+            } else {
+                printf("[VTK_DEBUG] Ensemble mode not active at timestep %d\n", timestep);
+            }
             
             // Log concentration data for analysis
             log_first_particle_concentrations(timestep, currentTime);
