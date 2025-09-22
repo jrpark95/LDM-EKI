@@ -32,3 +32,4 @@ logs/
 *.csv
 *.png
 *.pyc
+*.vtk

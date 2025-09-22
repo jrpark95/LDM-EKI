@@ -1,0 +1,784 @@
+[INFO] Cleaning all log directories...
+[INFO] All log directories cleaned successfully!
+==================================================================
+       LDM-EKI Sequential Workflow - Integrated Simulation        
+==================================================================
+Workflow Steps:
+  1. Single Mode LDM Execution
+  2. Post-processing and Observation Data Generation
+  3. EKI Estimation
+  4. Ensemble Generation from EKI Results
+  5. Ensemble Mode LDM Execution
+==================================================================
+[DEBUG] Loading nuclide config from: ./data/input/nuclides_config_1.txt
+[DEBUG] Successfully opened nuclide config file
+[DEBUG] Line 0: Co-60,-4.168E-09,1.0
+[DEBUG] Processing line: 'Co-60,-4.168E-09,1.0'
+[DEBUG] Parsed 3 tokens
+[DEBUG] Token[0]: 'Co-60'
+[DEBUG] Token[1]: '-4.168E-09'
+[DEBUG] Token[2]: '1.0'
+[DEBUG] Loaded 1 nuclides from config file
+[DEBUG] Loading EKI config from: ../eki/config/input_data
+[DEBUG] Failed to parse float: '1.0E+200'
+[DEBUG] Found 3 receptors
+[DEBUG] Receptor: lat=40.749, lon=-73.98, alt=0
+[DEBUG] Receptor: lat=40.749, lon=-74, alt=0
+[DEBUG] Receptor: lat=40.749, lon=-74.02, alt=0
+[DEBUG] Parsed 3 receptor positions
+[DEBUG] Parsing source data: Source_1: [4.17e-9, 1.02e-13, [-73.9650, 40.7490, 10.0], [
+  1.0e+7,   # 0:00-0:15 - Start: 10M
+  1....
+[DEBUG] Extracted array data length: 1109
+[DEBUG] First 300 chars: 
+  1.0e+7,   # 0:00-0:15 - Start: 10M
+  1.2e+7,   # 0:15-0:30 - Linear increase: 12M  
+  1.4e+7,   # 0:30-0:45 - Linear increase: 14M
+  1.6e+7,   # 0:45-1:00 - Linear increase: 16M
+  1.8e+7,   # 1:00-1:15 - Linear increase: 18M
+  2.0e+7,   # 1:15-1:30 - Linear increase: 20M
+  2.2e+7,   # 1:30-1:45 -
+[DEBUG] extractFloatArray input: 
+  1.0e+7,   # 0:00-0:15 - Start: 10M
+  1.2e+7,   # 0:15-0:30 - Linear increase: 12M  
+  1.4e+7,   # 0:30-0:45 - Linear increase: 14M
+  1.6e+7,   # 0:45-1:00 - Linear increase: 16M
+  1.8e+7,   # 1:00-1:15 - Linear increase: 18M
+  2.0e+7,   # 1:15-1:30 - Linear increase: 20M
+  2.2e+7,   # 1:30-1:45 - Linear increase: 22M
+  2.4e+7,   # 1:45-2:00 - Linear increase: 24M
+  2.6e+7,   # 2:00-2:15 - Linear increase: 26M
+  2.8e+7,   # 2:15-2:30 - Linear increase: 28M
+  3.0e+7,   # 2:30-2:45 - Linear incr...
+[DEBUG] Extracted value: 1e+07
+[DEBUG] Extracted value: 1.2e+07
+[DEBUG] Extracted value: 1.4e+07
+[DEBUG] Extracted value: 1.6e+07
+[DEBUG] Extracted value: 1.8e+07
+[DEBUG] Extracted value: 2e+07
+[DEBUG] Extracted value: 2.2e+07
+[DEBUG] Extracted value: 2.4e+07
+[DEBUG] Extracted value: 2.6e+07
+[DEBUG] Extracted value: 2.8e+07
+[DEBUG] Extracted value: 3e+07
+[DEBUG] Extracted value: 3.2e+07
+[DEBUG] Extracted value: 3.4e+07
+[DEBUG] Extracted value: 3.6e+07
+[DEBUG] Extracted value: 3.8e+07
+[DEBUG] Extracted value: 4e+07
+[DEBUG] Extracted value: 4.2e+07
+[DEBUG] Extracted value: 4.4e+07
+[DEBUG] Extracted value: 4.6e+07
+[DEBUG] Extracted value: 4.8e+07
+[DEBUG] Extracted value: 5e+07
+[DEBUG] Extracted value: 5.2e+07
+[DEBUG] Extracted value: 5.4e+07
+[DEBUG] Extracted value: 5.6e+07
+[DEBUG] extractFloatArray extracted 24 values
+[DEBUG] Source emission values (24 total):
+[DEBUG]   Time step 0: 1e+07
+[DEBUG]   Time step 1: 1.2e+07
+[DEBUG]   Time step 2: 1.4e+07
+[DEBUG]   Time step 3: 1.6e+07
+[DEBUG]   Time step 4: 1.8e+07
+[DEBUG]   ... and 19 more values
+[DEBUG] Parsed source emission with 24 time steps
+[DEBUG] Parsing prior data: Prior_Source_1: [4.17e-9, 1.02e-13, [[-73.9650, 40.7490, 100.0],[0.1]], [[
+  4.0e+7,   # 0:00-0:15 - Prior: 40M  
+  4.0e+7,   # 0:15-0:30 - Prior: 40M...
+[DEBUG] Prior values data length: 891
+[DEBUG] First 300 chars: 
+  4.0e+7,   # 0:00-0:15 - Prior: 40M  
+  4.0e+7,   # 0:15-0:30 - Prior: 40M
+  4.0e+7,   # 0:30-0:45 - Prior: 40M
+  4.0e+7,   # 0:45-1:00 - Prior: 40M
+  4.0e+7,   # 1:00-1:15 - Prior: 40M
+  4.0e+7,   # 1:15-1:30 - Prior: 40M
+  4.0e+7,   # 1:30-1:45 - Prior: 40M
+  4.0e+7,   # 1:45-2:00 - Prior: 40M
+ 
+[DEBUG] extractFloatArray input: 
+  4.0e+7,   # 0:00-0:15 - Prior: 40M  
+  4.0e+7,   # 0:15-0:30 - Prior: 40M
+  4.0e+7,   # 0:30-0:45 - Prior: 40M
+  4.0e+7,   # 0:45-1:00 - Prior: 40M
+  4.0e+7,   # 1:00-1:15 - Prior: 40M
+  4.0e+7,   # 1:15-1:30 - Prior: 40M
+  4.0e+7,   # 1:30-1:45 - Prior: 40M
+  4.0e+7,   # 1:45-2:00 - Prior: 40M
+  4.0e+7,   # 2:00-2:15 - Prior: 40M
+  4.0e+7,   # 2:15-2:30 - Prior: 40M
+  4.0e+7,   # 2:30-2:45 - Prior: 40M
+  4.0e+7,   # 2:45-3:00 - Prior: 40M
+  4.0e+7,   # 3:00-3:15 - Prior: 40M
+  4.0e+7,   # 3:...
+[DEBUG] Extracted value: 4e+07
+[DEBUG] Extracted value: 4e+07
+[DEBUG] Extracted value: 4e+07
+[DEBUG] Extracted value: 4e+07
+[DEBUG] Extracted value: 4e+07
+[DEBUG] Extracted value: 4e+07
+[DEBUG] Extracted value: 4e+07
+[DEBUG] Extracted value: 4e+07
+[DEBUG] Extracted value: 4e+07
+[DEBUG] Extracted value: 4e+07
+[DEBUG] Extracted value: 4e+07
+[DEBUG] Extracted value: 4e+07
+[DEBUG] Extracted value: 4e+07
+[DEBUG] Extracted value: 4e+07
+[DEBUG] Extracted value: 4e+07
+[DEBUG] Extracted value: 4e+07
+[DEBUG] Extracted value: 4e+07
+[DEBUG] Extracted value: 4e+07
+[DEBUG] Extracted value: 4e+07
+[DEBUG] Extracted value: 4e+07
+[DEBUG] Extracted value: 4e+07
+[DEBUG] Extracted value: 4e+07
+[DEBUG] Extracted value: 4e+07
+[DEBUG] Extracted value: 4e+07
+[DEBUG] extractFloatArray extracted 24 values
+[DEBUG] Prior values (24 total):
+[DEBUG]   Time step 0: 4e+07
+[DEBUG]   Time step 1: 4e+07
+[DEBUG]   Time step 2: 4e+07
+[DEBUG]   Time step 3: 4e+07
+[DEBUG]   Time step 4: 4e+07
+[DEBUG]   ... and 19 more values
+[DEBUG] Prior source: decay=4.17e-09, pos=[-73.965,40.749,100], nuclide=Co-60
+[DEBUG] Parsed prior source with 24 time steps
+[DEBUG] extractFloatArray input: 4.0e+7, 2.0e+6, 4.17e-9...
+[DEBUG] Extracted value: 4e+07
+[DEBUG] Extracted value: 2e+06
+[DEBUG] Extracted value: 4.17e-09
+[DEBUG] extractFloatArray extracted 3 values
+[DEBUG] extractFloatArray input: 0.0, 1.0e+9...
+[DEBUG] Extracted value: 0
+[DEBUG] Extracted value: 1e+09
+[DEBUG] extractFloatArray extracted 2 values
+[DEBUG] EKI configuration loaded successfully:
+[DEBUG]   Receptors: 3
+[DEBUG]   Source emission time steps: 24
+[DEBUG]   Prior source time steps: 24
+[DEBUG]   Receptor 0: lat=40.749, lon=-73.98, alt=0
+[DEBUG]   Receptor 1: lat=40.749, lon=-74, alt=0
+[DEBUG]   Receptor 2: lat=40.749, lon=-74.02, alt=0
+[DEBUG] Writing EKI configuration to log file...
+[DEBUG] EKI configuration log written to: ../logs/eki_logs/eki_config.log
+[DEBUG] Attempting to copy T matrix to T_const symbol (3600 floats, 14400 bytes)
+[DEBUG] Successfully copied T matrix to T_const constant memory
+Physics models: TURB=0, DRYDEP=0, WETDEP=0, RADDECAY=1
+Cleaning output directory...
+Output directory cleaned.
+[DEBUG] Attempting to copy T matrix to T_const symbol (3600 floats, 14400 bytes)
+[DEBUG] Successfully copied T matrix to T_const constant memory
+[DEBUG] Physics model settings: TURB=0, DRYDEP=0, WETDEP=0, RADDECAY=1
+[DEBUG_D_NOP] Setting d_nop - ensemble_mode_active=0 nop=1000 enop=0 particles_for_kernel=1000
+[DEBUG] Single nuclide mode: CRAM system disabled
+[INFO] Cleaning log directories...
+[INFO] Log directories cleaned successfully (LDM + EKI logs)
+
+[STEP 1] Starting Single Mode LDM Execution...
+  [1.1] Initializing particles in single mode...
+[DEBUG INIT] Particle 0 Nuclide 0 time_step_index=0 eki_concentration=1e+07 initial_ratio=1 final_conc=1e+07
+[DEBUG INIT] Particle 1 Nuclide 0 time_step_index=0 eki_concentration=1e+07 initial_ratio=1 final_conc=1e+07
+[DEBUG INIT] Particle 2 Nuclide 0 time_step_index=0 eki_concentration=1e+07 initial_ratio=1 final_conc=1e+07
+  [1.2] Loading height and GFS data...
+[DEBUG] Starting read_meteorological_flex_hgt function...
+[DEBUG] flex_hgt vector resized to 26 elements
+[DEBUG] Successfully opened file: ./data/input/flexprewind/hgt_0.txt
+[DEBUG] Successfully read 26 height levels from file
+[DEBUG] Attempting to copy 26 float values to d_flex_hgt constant memory
+[DEBUG] Successfully copied flex_hgt to GPU constant memory
+[DEBUG] Starting read_meteorological_flex_gfs_init3 function...
+[DEBUG] flex_hgt vector resized to 26 elements
+[DEBUG] Allocating memory for FlexPres data: 6767306 elements
+[DEBUG] Allocating memory for FlexUnis data: 260281 elements
+[DEBUG] Successfully opened file: ./data/input/flexprewind/0.txt
+[VERIFY] HMIX[100,50] = 1010.5
+[VERIFY] HMIX[200,150] = 1021.5
+[VERIFY] HMIX[360,180] = 1037.8
+[DRHO_DEBUG] Height check: flex_hgt[0]=0, flex_hgt[1]=500, diff=500
+[DRHO_CALC] [0,0]: rho0=1.225, rho1=1.226, hgt_diff=500, DRHO=1.99985e-06
+[DRHO_CALC] [0,1]: rho0=1.22501, rho1=1.22601, hgt_diff=500, DRHO=1.99985e-06
+[DRHO_CALC] [1,0]: rho0=1.2251, rho1=1.2261, hgt_diff=500, DRHO=1.99985e-06
+[DRHO_CALC] [1,1]: rho0=1.22511, rho1=1.22611, hgt_diff=500, DRHO=1.99985e-06
+[INFO] Wind data loaded - UU[0,0,0]=5, VV[0,0,0]=0, WW[0,0,0]=0.1
+[DEBUG] File read completed successfully
+[DEBUG] Meteorological pres data copied successfully
+[DEBUG] Meteorological unis data copied successfully
+  [1.3] Allocating GPU memory...
+[DEBUG] Particle memory copy successful, no CUDA errors detected
+  [1.4] Running single mode simulation...
+33
+t0 = 0.009259
+[MOVE_LIMIT] idx=0 d_nop=1000
+[MOVE_LIMIT] idx=1 d_nop=1000
+[MOVE_LIMIT] idx=2 d_nop=1000
+[MOVE_LIMIT] idx=3 d_nop=1000
+[MOVE_LIMIT] idx=4 d_nop=1000
+[WIND_CALC] Particle 0: xwind=7.301229, ywind=0.202184, zwind=0.122657 (NaN: x=0, y=0, z=0)
+[CRITICAL] Particle 0: p.x=209.800, p.y=261.498, p.z=100.000 -> x1=0.200, y1=0.502, z1=0.800 -> xwind=7.301
+[DEBUG_Z_AFTER_CRITICAL] Particle 0: p.z=100.000000 (NaN=0)
+[WP_CALC] Particle 0: Tw=67.546776, rw=0.227534, old_wp=0.000000, wsig=0.873469, dsw2=0.002670, drho=0.000002, rho=1.248846, p.dir=1, new_wp=0.997804 (NaN=0)
+[Z_NORMAL] Particle 0: old_z=100.000000, wp=0.997804, dt=100.000000, new_z=199.780396 (NaN=0)
+[Z_UPDATE1] Particle 0: old_z=199.780396, zwind=0.122657, dt=100.000000, new_z=212.046112 (NaN=0)
+[FINAL] Particle 0: z=212.046 (NaN=0)
+t0 = 0.018519
+[MOVE_LIMIT] idx=0 d_nop=1000
+[MOVE_LIMIT] idx=1 d_nop=1000
+[MOVE_LIMIT] idx=2 d_nop=1000
+[MOVE_LIMIT] idx=3 d_nop=1000
+[MOVE_LIMIT] idx=4 d_nop=1000
+[WIND_CALC] Particle 0: xwind=7.242295, ywind=0.168467, zwind=0.121760 (NaN: x=0, y=0, z=0)
+[CRITICAL] Particle 0: p.x=209.800, p.y=261.498, p.z=212.046 -> x1=0.200, y1=0.502, z1=0.576 -> xwind=7.242
+[DEBUG_Z_AFTER_CRITICAL] Particle 0: p.z=212.046112 (NaN=0)
+[WP_CALC] Particle 0: Tw=100.351868, rw=0.369172, old_wp=0.997804, wsig=0.986949, dsw2=0.001608, drho=0.000001, rho=1.249008, p.dir=1, new_wp=0.496114 (NaN=0)
+[Z_NORMAL] Particle 0: old_z=212.046112, wp=0.496114, dt=100.000000, new_z=261.657471 (NaN=0)
+[Z_UPDATE1] Particle 0: old_z=261.657471, zwind=0.121760, dt=100.000000, new_z=273.833466 (NaN=0)
+[FINAL] Particle 0: z=273.833 (NaN=0)
+t0 = 0.027778
+[MOVE_LIMIT] idx=0 d_nop=1000
+[MOVE_LIMIT] idx=1 d_nop=1000
+[MOVE_LIMIT] idx=2 d_nop=1000
+[MOVE_LIMIT] idx=3 d_nop=1000
+[MOVE_LIMIT] idx=4 d_nop=1000
+[WIND_CALC] Particle 0: xwind=7.172774, ywind=0.132681, zwind=0.120763 (NaN: x=0, y=0, z=0)
+[CRITICAL] Particle 0: p.x=209.782, p.y=261.516, p.z=273.833 -> x1=0.218, y1=0.484, z1=0.452 -> xwind=7.173
+[DEBUG_Z_AFTER_CRITICAL] Particle 0: p.z=273.833466 (NaN=0)
+[WP_CALC] Particle 0: Tw=110.762764, rw=0.405421, old_wp=0.496114, wsig=1.022372, dsw2=0.001336, drho=0.000001, rho=1.249034, p.dir=1, new_wp=0.172449 (NaN=0)
+[Z_NORMAL] Particle 0: old_z=273.833466, wp=0.172449, dt=100.000000, new_z=291.078339 (NaN=0)
+[Z_UPDATE1] Particle 0: old_z=291.078339, zwind=0.120763, dt=100.000000, new_z=303.154602 (NaN=0)
+[FINAL] Particle 0: z=303.155 (NaN=0)
+-------------------------------------------------
+Time : 300.000000	sec
+Time steps : 	3 of 	3
+[DEBUG_VTK] timestep=3 ensemble_mode=0 nop=1000 enop=0 total_particles=1000
+[DEBUG_VTK] active_particles=1000
+[VTK_DEBUG] Ensemble mode not active at timestep 3
+[FINAL] Logged 1000 active particles at simulation end (t=300s) to ../logs/ldm_logs/particles_final.csv
+Elapsed data time: 0.014656 seconds
+Elapsed time: 0.145428 seconds
+  [1.5] Single mode simulation completed
+[STEP 1] Single mode LDM execution completed successfully
+
+[STEP 2] Starting Post-processing...
+  [2.1] Preparing observation data...
+
+[INFO] Preparing observation data for EKI...
+[INFO] Calculating receptor concentrations from available particle data...
+[WARNING] No particle files found. Using final particle state...
+[INFO] Using particles_final.csv for concentration calculation
+[INFO] Processed timestep 24 particles captured: R0=1000(3.30e+10) R1=1000(3.30e+10) R2=1000(3.30e+10) 
+[INFO] Initial observation data saved to file.
+[DEBUG] Logging LDM->EKI matrix transmission...
+[DEBUG] LDM->EKI matrix log written to: ../logs/eki_logs/ldm_eki_matrix_transmission.log
+  [2.2] Running visualization...
+
+[INFO] Simulation completed. Creating animation frames...
+[INFO] Running OSM visualization generation...
+No particle data found!
+[INFO] OSM visualizations created successfully.
+[INFO] OSM visualization completed. Check logs/ldm_logs/ for:
+  - osm_grid_zoomed_out.png (2x3 wide view)
+  - osm_grid_zoomed_in.png (2x3 NYC focus)
+  - animation_frame_*.png (individual OSM frames)
+  [2.3] Post-processing completed
+[STEP 2] Post-processing completed successfully
+
+[STEP 3] Starting EKI Estimation...
+  [3.1] Executing EKI estimation algorithm...
+[INFO] Running EKI estimation...
+
+[INFO] Starting EKI source estimation...
+[INFO] Running EKI RunEstimator.py with config files...
+Start:EKI
+Sample:100
+Computing: [........................................] 0/3/home/jrpark/LDM-EKI/eki/src/Optimizer_EKI_np.py:697: RuntimeWarning: invalid value encountered in divide
+  residual /= abs(misfit_list[0])
+
+receptor: 3
+=== USING DUMMY OBSERVATION DATA FOR TESTING ===
+Loading observation data from file: /home/jrpark/LDM-EKI/logs/ldm_logs/initial_observations.bin
+Loaded 72 observation values from file
+[DEBUG] EKI reception matrix log written to: /home/jrpark/LDM-EKI/logs/eki_logs/eki_reception_matrix.log
+Observation data shape: (1, 72)
+Observation data: [array([5.8900045e+09, 7.0680049e+09, 8.2460058e+09, 9.4240072e+09,
+       1.0602008e+10, 1.1780009e+10, 1.2958008e+10, 1.4136010e+10,
+       1.5314010e+10, 1.6492012e+10, 1.7670011e+10, 1.8848014e+10,
+       2.0026014e+10, 2.1204015e+10, 2.2382014e+10, 2.3560018e+10,
+       2.4738017e+10, 2.5916017e+10, 2.7094020e+10, 2.8272019e+10,
+       2.9450021e+10, 3.0628020e+10, 3.1806024e+10, 3.2984023e+10,
+       5.8900045e+09, 7.0680049e+09, 8.2460058e+09, 9.4240072e+09,
+       1.0602008e+10, 1.1780009e+10, 1.2958008e+10, 1.4136010e+10,
+       1.5314010e+10, 1.6492012e+10, 1.7670011e+10, 1.8848014e+10,
+       2.0026014e+10, 2.1204015e+10, 2.2382014e+10, 2.3560018e+10,
+       2.4738017e+10, 2.5916017e+10, 2.7094020e+10, 2.8272019e+10,
+       2.9450021e+10, 3.0628020e+10, 3.1806024e+10, 3.2984023e+10,
+       5.8900045e+09, 7.0680049e+09, 8.2460058e+09, 9.4240072e+09,
+       1.0602008e+10, 1.1780009e+10, 1.2958008e+10, 1.4136010e+10,
+       1.5314010e+10, 1.6492012e+10, 1.7670011e+10, 1.8848014e+10,
+       2.0026014e+10, 2.1204015e+10, 2.2382014e+10, 2.3560018e+10,
+       2.4738017e+10, 2.5916017e+10, 2.7094020e+10, 2.8272019e+10,
+       2.9450021e+10, 3.0628020e+10, 3.1806024e+10, 3.2984023e+10],
+      dtype=float32)]
+=== TRUE OBSERVATION VALUES ===
+Shape: (72,)
+First 24 values: [5.8900045e+09 7.0680049e+09 8.2460058e+09 9.4240072e+09 1.0602008e+10
+ 1.1780009e+10 1.2958008e+10 1.4136010e+10 1.5314010e+10 1.6492012e+10
+ 1.7670011e+10 1.8848014e+10 2.0026014e+10 2.1204015e+10 2.2382014e+10
+ 2.3560018e+10 2.4738017e+10 2.5916017e+10 2.7094020e+10 2.8272019e+10
+ 2.9450021e+10 3.0628020e+10 3.1806024e+10 3.2984023e+10]
+Min: 5.890004e+09, Max: 3.298402e+10, Mean: 1.943701e+10
+Non-zero count: 72/72
+True source parameters (for reference): [4.17e-09, 1.02e-13, [-73.965, 40.749, 10.0], [10000000.0, 12000000.0, 14000000.0, 16000000.0, 18000000.0, 20000000.0, 22000000.0, 24000000.0, 26000000.0, 28000000.0, 30000000.0, 32000000.0, 34000000.0, 36000000.0, 38000000.0, 40000000.0, 42000000.0, 44000000.0, 46000000.0, 48000000.0, 50000000.0, 52000000.0, 54000000.0, 56000000.0], 0.0, 0.0, 'Co-60']
+True emission rates (first 5): [10000000. 12000000. 14000000. 16000000. 18000000.]
+True emission rates (peak): 56000000.0
+True observation range: [5.89e+09, 3.30e+10]
+True observation values (first 10): [5.8900045e+09 7.0680049e+09 8.2460058e+09 9.4240072e+09 1.0602008e+10
+ 1.1780009e+10 1.2958008e+10 1.4136010e+10 1.5314010e+10 1.6492012e+10]
+iteration: 1
+=== EKI SENDING DATA ===
+Original state shape: (24, 100)
+State already in time-series format: (24, 100)
+tmp_states shape: (24, 100)
+tmp_states min/max/mean: 2.75e+07/5.27e+07/3.99e+07
+tmp_states first 5 values: [47056209.38387065 41600628.83346889 43914951.93642296 48963572.79680583
+ 47470231.96059987]
+First ensemble values for time intervals 0-4: [47056209.38387065 47532602.78822502 38523272.64823022 34773892.59305874
+ 37605384.25230806]
+Second ensemble values for time intervals 0-4: [41600628.83346889 34608963.75543021 39042483.28969629 46632522.71847275
+ 35536412.05615842]
+Number of zeros in tmp_states: 0/2400
+[DEBUG] EKI ensemble states saved to: /home/jrpark/LDM-EKI/logs/ldm_logs/ensemble_states_iter_1.bin
+[DEBUG] EKI ensemble transmission log written to: /home/jrpark/LDM-EKI/logs/eki_logs/eki_ensemble_transmission_iter_1.log
+=== USING DUMMY RESULTS FOR ENSEMBLE FORWARD MODEL ===
+Generating dummy results for ensemble size: 100
+Generated dummy results: shape (100, 3, 24)
+Result range: 3.81e-09 to 3.01e-07
+=== EKI RECEIVED DATA ===
+tmp_results shape: (100, 3, 24)
+tmp_results min/max/mean: 3.81e-09/3.01e-07/9.98e-08
+tmp_results first 5 values: [3.87267429e-09 7.74534858e-09 1.16180229e-08 1.54906972e-08
+ 1.93633714e-08]
+tmp_results last 5 values: [2.42017181e-07 2.54118040e-07 2.66218899e-07 2.78319758e-07
+ 2.90420617e-07]
+Number of zeros in tmp_results: 0/7200
+(100, 3, 24)
+
+=== OBSERVATION QUALITY SUMMARY ===
+Non-zero observation ratio: 1.0000 (100.00%)
+Total observations: 72, Non-zero: 72
+Value range: [3.87e-09, 2.79e-07]
+Log saved to: /home/jrpark/EKI-LDM5-dev/eki_obs_debug_log.txt
+========================================
+iteration: 2
+=== EKI SENDING DATA ===
+Original state shape: (24, 100)
+State already in time-series format: (24, 100)
+tmp_states shape: (24, 100)
+tmp_states min/max/mean: 2.75e+07/5.27e+07/3.99e+07
+tmp_states first 5 values: [47056209.38387065 41600628.83346889 43914951.93642296 48963572.79680583
+ 47470231.96059987]
+First ensemble values for time intervals 0-4: [47056209.38387065 47532602.78822502 38523272.64823022 34773892.59305874
+ 37605384.25230806]
+Second ensemble values for time intervals 0-4: [41600628.83346889 34608963.75543021 39042483.28969629 46632522.71847275
+ 35536412.05615842]
+Number of zeros in tmp_states: 0/2400
+[DEBUG] EKI ensemble states saved to: /home/jrpark/LDM-EKI/logs/ldm_logs/ensemble_states_iter_2.bin
+[DEBUG] EKI ensemble transmission log written to: /home/jrpark/LDM-EKI/logs/eki_logs/eki_ensemble_transmission_iter_2.log
+=== USING DUMMY RESULTS FOR ENSEMBLE FORWARD MODEL ===
+Generating dummy results for ensemble size: 100
+Generated dummy results: shape (100, 3, 24)
+Result range: 3.81e-09 to 3.01e-07
+=== EKI RECEIVED DATA ===
+tmp_results shape: (100, 3, 24)
+tmp_results min/max/mean: 3.81e-09/3.01e-07/9.98e-08
+tmp_results first 5 values: [3.87267429e-09 7.74534858e-09 1.16180229e-08 1.54906972e-08
+ 1.93633714e-08]
+tmp_results last 5 values: [2.42017181e-07 2.54118040e-07 2.66218899e-07 2.78319758e-07
+ 2.90420617e-07]
+Number of zeros in tmp_results: 0/7200
+(100, 3, 24)
+iteration: 3
+=== EKI SENDING DATA ===
+Original state shape: (24, 100)
+State already in time-series format: (24, 100)
+tmp_states shape: (24, 100)
+tmp_states min/max/mean: 2.75e+07/5.27e+07/3.99e+07
+tmp_states first 5 values: [47056209.38387065 41600628.83346889 43914951.93642296 48963572.79680583
+ 47470231.96059987]
+First ensemble values for time intervals 0-4: [47056209.38387065 47532602.78822502 38523272.64823022 34773892.59305874
+ 37605384.25230806]
+Second ensemble values for time intervals 0-4: [41600628.83346889 34608963.75543021 39042483.28969629 46632522.71847275
+ 35536412.05615842]
+Number of zeros in tmp_states: 0/2400
+[DEBUG] EKI ensemble states saved to: /home/jrpark/LDM-EKI/logs/ldm_logs/ensemble_states_iter_3.bin
+[DEBUG] EKI ensemble transmission log written to: /home/jrpark/LDM-EKI/logs/eki_logs/eki_ensemble_transmission_iter_3.log
+=== USING DUMMY RESULTS FOR ENSEMBLE FORWARD MODEL ===
+Generating dummy results for ensemble size: 100
+Generated dummy results: shape (100, 3, 24)
+Result range: 3.81e-09 to 3.01e-07
+=== EKI RECEIVED DATA ===
+tmp_results shape: (100, 3, 24)
+tmp_results min/max/mean: 3.81e-09/3.01e-07/9.98e-08
+tmp_results first 5 values: [3.87267429e-09 7.74534858e-09 1.16180229e-08 1.54906972e-08
+ 1.93633714e-08]
+tmp_results last 5 values: [2.42017181e-07 2.54118040e-07 2.66218899e-07 2.78319758e-07
+ 2.90420617e-07]
+Number of zeros in tmp_results: 0/7200
+(100, 3, 24)
+iteration: 4
+=== EKI SENDING DATA ===
+Original state shape: (24, 100)
+State already in time-series format: (24, 100)
+tmp_states shape: (24, 100)
+tmp_states min/max/mean: 2.75e+07/5.27e+07/3.99e+07
+tmp_states first 5 values: [47056209.38387065 41600628.83346889 43914951.93642296 48963572.79680583
+ 47470231.96059987]
+First ensemble values for time intervals 0-4: [47056209.38387065 47532602.78822502 38523272.64823022 34773892.59305874
+ 37605384.25230806]
+Second ensemble values for time intervals 0-4: [41600628.83346889 34608963.75543021 39042483.28969629 46632522.71847275
+ 35536412.05615842]
+Number of zeros in tmp_states: 0/2400
+[DEBUG] EKI ensemble states saved to: /home/jrpark/LDM-EKI/logs/ldm_logs/ensemble_states_iter_4.bin
+[DEBUG] EKI ensemble transmission log written to: /home/jrpark/LDM-EKI/logs/eki_logs/eki_ensemble_transmission_iter_4.log
+=== USING DUMMY RESULTS FOR ENSEMBLE FORWARD MODEL ===
+Generating dummy results for ensemble size: 100
+Generated dummy results: shape (100, 3, 24)
+Result range: 3.81e-09 to 3.01e-07
+=== EKI RECEIVED DATA ===
+tmp_results shape: (100, 3, 24)
+tmp_results min/max/mean: 3.81e-09/3.01e-07/9.98e-08
+tmp_results first 5 values: [3.87267429e-09 7.74534858e-09 1.16180229e-08 1.54906972e-08
+ 1.93633714e-08]
+tmp_results last 5 values: [2.42017181e-07 2.54118040e-07 2.66218899e-07 2.78319758e-07
+ 2.90420617e-07]
+Number of zeros in tmp_results: 0/7200
+(100, 3, 24)
+iteration: 5
+=== EKI SENDING DATA ===
+Original state shape: (24, 100)
+State already in time-series format: (24, 100)
+tmp_states shape: (24, 100)
+tmp_states min/max/mean: 2.75e+07/5.27e+07/3.99e+07
+tmp_states first 5 values: [47056209.38387065 41600628.83346889 43914951.93642296 48963572.79680583
+ 47470231.96059987]
+First ensemble values for time intervals 0-4: [47056209.38387065 47532602.78822502 38523272.64823022 34773892.59305874
+ 37605384.25230806]
+Second ensemble values for time intervals 0-4: [41600628.83346889 34608963.75543021 39042483.28969629 46632522.71847275
+ 35536412.05615842]
+Number of zeros in tmp_states: 0/2400
+[DEBUG] EKI ensemble states saved to: /home/jrpark/LDM-EKI/logs/ldm_logs/ensemble_states_iter_5.bin
+[DEBUG] EKI ensemble transmission log written to: /home/jrpark/LDM-EKI/logs/eki_logs/eki_ensemble_transmission_iter_5.log
+=== USING DUMMY RESULTS FOR ENSEMBLE FORWARD MODEL ===
+Generating dummy results for ensemble size: 100
+Generated dummy results: shape (100, 3, 24)
+Result range: 3.81e-09 to 3.01e-07
+=== EKI RECEIVED DATA ===
+tmp_results shape: (100, 3, 24)
+tmp_results min/max/mean: 3.81e-09/3.01e-07/9.98e-08
+tmp_results first 5 values: [3.87267429e-09 7.74534858e-09 1.16180229e-08 1.54906972e-08
+ 1.93633714e-08]
+tmp_results last 5 values: [2.42017181e-07 2.54118040e-07 2.66218899e-07 2.78319758e-07
+ 2.90420617e-07]
+Number of zeros in tmp_results: 0/7200
+(100, 3, 24)
+Debug: Best_Iter0 shape: (5, 24)
+Debug: Best_Iter0[-1] shape: (24,)
+Debug: Best_Iter0[-1] size: 24
+Debug: nsource: 1
+Debug: time_intervals: 24
+Debug: expected size: 24
+Loaded true values from input_data: 24 concentration values for 6.0 hours
+Saved plot as: /home/jrpark/EKI-LDM5-dev/ldm-20241030/eki_results/107.png
+33.33333333333333
+Time: 4.536951780319214
+[INFO] EKI source estimation completed successfully.
+[INFO] Check eki/results/ for estimation results and plots.
+  [3.2] EKI estimation algorithm completed
+[STEP 3] EKI estimation completed successfully
+
+[STEP 4] Loading EKI Ensemble Results...
+  [4.1] Loading ensemble states from EKI...
+[DEBUG] Attempting to load EKI ensemble states from: ../logs/ldm_logs/ensemble_states_iter_5.bin
+[DEBUG] File size: 9600 bytes, Total elements: 2400
+[DEBUG] Ensemble matrix dimensions: 24 x 100
+[INFO] Successfully loaded ensemble matrix [24 x 100]
+[DEBUG] Logging LDM ensemble reception...
+[DEBUG] LDM ensemble reception log written to: ../logs/eki_logs/ldm_ensemble_reception_iter_5.log
+  [4.2] Loaded ensemble from iteration 5
+  [4.3] Sample ensemble value [time=0, ensemble=0]: 4.71e+07
+  [4.4] Memory allocated: 9600 bytes
+[STEP 4] Successfully loaded ensemble matrix [24 x 100]
+
+[STEP 5] Starting Ensemble Mode LDM Execution...
+  [5.1] Configuring ensemble mode...
+  [5.2] Ensemble configuration: 100 ensembles, 1000 particles each, total 100000
+  [5.3] Using ensemble-specific emission data...
+  [5.4] Initializing ensemble particles...
+  [ENSEMBLE] Initializing 100 ensembles with 1000 particles each...
+  [EKI_MATRIX] Sample ensemble matrix data:
+    Ensemble 0: T0=4.71e+07 T1=4.75e+07 T2=3.85e+07 T3=3.48e+07 T4=3.76e+07 ... (total 24 time steps)
+    Ensemble 1: T0=4.16e+07 T1=3.46e+07 T2=3.90e+07 T3=4.66e+07 T4=3.55e+07 ... (total 24 time steps)
+    Ensemble 2: T0=4.39e+07 T1=3.49e+07 T2=4.44e+07 T3=3.95e+07 T4=4.31e+07 ... (total 24 time steps)
+    Ensemble 3: T0=4.90e+07 T1=4.39e+07 T2=4.26e+07 T3=3.73e+07 T4=4.14e+07 ... (total 24 time steps)
+    Ensemble 4: T0=4.75e+07 T1=3.53e+07 T2=4.26e+07 T3=4.27e+07 T4=3.29e+07 ... (total 24 time steps)
+    ... (total 100 ensembles)
+  [ENSEMBLE 0] Initializing 1000 particles...
+    [DEBUG] E0_P0: global_id=1 timeidx=0 time_step=0 eki_rate=4.71e+07 conc=4.71e+07
+    [DEBUG] E0_P1: global_id=2 timeidx=1 time_step=0 eki_rate=4.71e+07 conc=4.71e+07
+    [DEBUG] E0_P2: global_id=3 timeidx=2 time_step=0 eki_rate=4.71e+07 conc=4.71e+07
+    [DEBUG] E0_P3: global_id=4 timeidx=3 time_step=0 eki_rate=4.71e+07 conc=4.71e+07
+    [DEBUG] E0_P4: global_id=5 timeidx=4 time_step=0 eki_rate=4.71e+07 conc=4.71e+07
+  [ENSEMBLE 0] Mean concentration: 3.87e+07 (range: 4.71e+07 to 3.89e+07)
+  [ENSEMBLE 1] Initializing 1000 particles...
+    [DEBUG] E1_P0: global_id=1001 timeidx=0 time_step=0 eki_rate=4.16e+07 conc=4.16e+07
+    [DEBUG] E1_P1: global_id=1002 timeidx=1 time_step=0 eki_rate=4.16e+07 conc=4.16e+07
+    [DEBUG] E1_P2: global_id=1003 timeidx=2 time_step=0 eki_rate=4.16e+07 conc=4.16e+07
+    [DEBUG] E1_P3: global_id=1004 timeidx=3 time_step=0 eki_rate=4.16e+07 conc=4.16e+07
+    [DEBUG] E1_P4: global_id=1005 timeidx=4 time_step=0 eki_rate=4.16e+07 conc=4.16e+07
+  [ENSEMBLE 1] Mean concentration: 3.91e+07 (range: 4.16e+07 to 3.80e+07)
+  [ENSEMBLE 2] Initializing 1000 particles...
+    [DEBUG] E2_P0: global_id=2001 timeidx=0 time_step=0 eki_rate=4.39e+07 conc=4.39e+07
+    [DEBUG] E2_P1: global_id=2002 timeidx=1 time_step=0 eki_rate=4.39e+07 conc=4.39e+07
+    [DEBUG] E2_P2: global_id=2003 timeidx=2 time_step=0 eki_rate=4.39e+07 conc=4.39e+07
+    [DEBUG] E2_P3: global_id=2004 timeidx=3 time_step=0 eki_rate=4.39e+07 conc=4.39e+07
+    [DEBUG] E2_P4: global_id=2005 timeidx=4 time_step=0 eki_rate=4.39e+07 conc=4.39e+07
+  [ENSEMBLE 2] Mean concentration: 4.12e+07 (range: 4.39e+07 to 4.53e+07)
+  [ENSEMBLE 3] Initializing 1000 particles...
+  [ENSEMBLE 3] Mean concentration: 4.04e+07 (range: 4.90e+07 to 3.95e+07)
+  [ENSEMBLE 4] Initializing 1000 particles...
+  [ENSEMBLE 4] Mean concentration: 3.91e+07 (range: 4.75e+07 to 4.18e+07)
+  [ENSEMBLE 5] Initializing 1000 particles...
+  [ENSEMBLE 6] Initializing 1000 particles...
+  [ENSEMBLE 7] Initializing 1000 particles...
+  [ENSEMBLE 8] Initializing 1000 particles...
+  [ENSEMBLE 9] Initializing 1000 particles...
+  [ENSEMBLE 10] Initializing 1000 particles...
+  [ENSEMBLE 11] Initializing 1000 particles...
+  [ENSEMBLE 12] Initializing 1000 particles...
+  [ENSEMBLE 13] Initializing 1000 particles...
+  [ENSEMBLE 14] Initializing 1000 particles...
+  [ENSEMBLE 15] Initializing 1000 particles...
+  [ENSEMBLE 16] Initializing 1000 particles...
+  [ENSEMBLE 17] Initializing 1000 particles...
+  [ENSEMBLE 18] Initializing 1000 particles...
+  [ENSEMBLE 19] Initializing 1000 particles...
+  [ENSEMBLE 20] Initializing 1000 particles...
+  [ENSEMBLE 20] Mean concentration: 3.97e+07 (range: 2.98e+07 to 4.10e+07)
+  [ENSEMBLE 21] Initializing 1000 particles...
+  [ENSEMBLE 22] Initializing 1000 particles...
+  [ENSEMBLE 23] Initializing 1000 particles...
+  [ENSEMBLE 24] Initializing 1000 particles...
+  [ENSEMBLE 25] Initializing 1000 particles...
+  [ENSEMBLE 26] Initializing 1000 particles...
+  [ENSEMBLE 27] Initializing 1000 particles...
+  [ENSEMBLE 28] Initializing 1000 particles...
+  [ENSEMBLE 29] Initializing 1000 particles...
+  [ENSEMBLE 30] Initializing 1000 particles...
+  [ENSEMBLE 31] Initializing 1000 particles...
+  [ENSEMBLE 32] Initializing 1000 particles...
+  [ENSEMBLE 33] Initializing 1000 particles...
+  [ENSEMBLE 34] Initializing 1000 particles...
+  [ENSEMBLE 35] Initializing 1000 particles...
+  [ENSEMBLE 36] Initializing 1000 particles...
+  [ENSEMBLE 37] Initializing 1000 particles...
+  [ENSEMBLE 38] Initializing 1000 particles...
+  [ENSEMBLE 39] Initializing 1000 particles...
+  [ENSEMBLE 40] Initializing 1000 particles...
+  [ENSEMBLE 40] Mean concentration: 3.97e+07 (range: 3.58e+07 to 4.22e+07)
+  [ENSEMBLE 41] Initializing 1000 particles...
+  [ENSEMBLE 42] Initializing 1000 particles...
+  [ENSEMBLE 43] Initializing 1000 particles...
+  [ENSEMBLE 44] Initializing 1000 particles...
+  [ENSEMBLE 45] Initializing 1000 particles...
+  [ENSEMBLE 46] Initializing 1000 particles...
+  [ENSEMBLE 47] Initializing 1000 particles...
+  [ENSEMBLE 48] Initializing 1000 particles...
+  [ENSEMBLE 49] Initializing 1000 particles...
+  [ENSEMBLE 50] Initializing 1000 particles...
+  [ENSEMBLE 51] Initializing 1000 particles...
+  [ENSEMBLE 52] Initializing 1000 particles...
+  [ENSEMBLE 53] Initializing 1000 particles...
+  [ENSEMBLE 54] Initializing 1000 particles...
+  [ENSEMBLE 55] Initializing 1000 particles...
+  [ENSEMBLE 56] Initializing 1000 particles...
+  [ENSEMBLE 57] Initializing 1000 particles...
+  [ENSEMBLE 58] Initializing 1000 particles...
+  [ENSEMBLE 59] Initializing 1000 particles...
+  [ENSEMBLE 60] Initializing 1000 particles...
+  [ENSEMBLE 60] Mean concentration: 4.04e+07 (range: 3.73e+07 to 2.91e+07)
+  [ENSEMBLE 61] Initializing 1000 particles...
+  [ENSEMBLE 62] Initializing 1000 particles...
+  [ENSEMBLE 63] Initializing 1000 particles...
+  [ENSEMBLE 64] Initializing 1000 particles...
+  [ENSEMBLE 65] Initializing 1000 particles...
+  [ENSEMBLE 66] Initializing 1000 particles...
+  [ENSEMBLE 67] Initializing 1000 particles...
+  [ENSEMBLE 68] Initializing 1000 particles...
+  [ENSEMBLE 69] Initializing 1000 particles...
+  [ENSEMBLE 70] Initializing 1000 particles...
+  [ENSEMBLE 71] Initializing 1000 particles...
+  [ENSEMBLE 72] Initializing 1000 particles...
+  [ENSEMBLE 73] Initializing 1000 particles...
+  [ENSEMBLE 74] Initializing 1000 particles...
+  [ENSEMBLE 75] Initializing 1000 particles...
+  [ENSEMBLE 76] Initializing 1000 particles...
+  [ENSEMBLE 77] Initializing 1000 particles...
+  [ENSEMBLE 78] Initializing 1000 particles...
+  [ENSEMBLE 79] Initializing 1000 particles...
+  [ENSEMBLE 80] Initializing 1000 particles...
+  [ENSEMBLE 80] Mean concentration: 3.98e+07 (range: 3.53e+07 to 3.83e+07)
+  [ENSEMBLE 81] Initializing 1000 particles...
+  [ENSEMBLE 82] Initializing 1000 particles...
+  [ENSEMBLE 83] Initializing 1000 particles...
+  [ENSEMBLE 84] Initializing 1000 particles...
+  [ENSEMBLE 85] Initializing 1000 particles...
+  [ENSEMBLE 86] Initializing 1000 particles...
+  [ENSEMBLE 87] Initializing 1000 particles...
+  [ENSEMBLE 88] Initializing 1000 particles...
+  [ENSEMBLE 89] Initializing 1000 particles...
+  [ENSEMBLE 90] Initializing 1000 particles...
+  [ENSEMBLE 91] Initializing 1000 particles...
+  [ENSEMBLE 92] Initializing 1000 particles...
+  [ENSEMBLE 93] Initializing 1000 particles...
+  [ENSEMBLE 94] Initializing 1000 particles...
+  [ENSEMBLE 95] Initializing 1000 particles...
+  [ENSEMBLE 96] Initializing 1000 particles...
+  [ENSEMBLE 97] Initializing 1000 particles...
+  [ENSEMBLE 98] Initializing 1000 particles...
+  [ENSEMBLE 99] Initializing 1000 particles...
+  [ENSEMBLE] Detailed initialization log saved: /home/jrpark/LDM-EKI/logs/integration_logs/ensemble_particle_details_20250922_210953.csv
+  [ENSEMBLE] Initialized 100000 particles across 100 ensembles
+  [5.4] Ensemble initialization log saved: /home/jrpark/LDM-EKI/logs/integration_logs/ensemble_sequential_20250922_210954.csv
+  [5.5] Running ensemble simulation...
+  [5.5.1] Setting ensemble total particles: 100000
+  [5.5.2] Reloading simulation configuration for ensemble mode...
+Physics models: TURB=0, DRYDEP=0, WETDEP=0, RADDECAY=1
+Cleaning output directory...
+Output directory cleaned.
+[DEBUG] Attempting to copy T matrix to T_const symbol (3600 floats, 14400 bytes)
+[DEBUG] Successfully copied T matrix to T_const constant memory
+[DEBUG] Physics model settings: TURB=0, DRYDEP=0, WETDEP=0, RADDECAY=1
+[DEBUG_D_NOP] Setting d_nop - ensemble_mode_active=1 nop=1000 enop=100000 particles_for_kernel=100000
+  [5.5.3] Simulation configuration reloaded for ensemble mode
+33
+t0 = 0.009259
+[KERNEL] E0_P0: idx_in_ens=0, maxActive=333, sim_ratio=0.333, flag=1
+[KERNEL] E0_P1: idx_in_ens=1, maxActive=333, sim_ratio=0.333, flag=1
+[KERNEL] E0_P2: idx_in_ens=2, maxActive=333, sim_ratio=0.333, flag=1
+[KERNEL] E0_P3: idx_in_ens=3, maxActive=333, sim_ratio=0.333, flag=1
+[KERNEL] E0_P4: idx_in_ens=4, maxActive=333, sim_ratio=0.333, flag=1
+[KERNEL] E1_P0: idx_in_ens=0, maxActive=333, sim_ratio=0.333, flag=1
+[KERNEL] E1_P1: idx_in_ens=1, maxActive=333, sim_ratio=0.333, flag=1
+[KERNEL] E1_P2: idx_in_ens=2, maxActive=333, sim_ratio=0.333, flag=1
+[KERNEL] E1_P3: idx_in_ens=3, maxActive=333, sim_ratio=0.333, flag=1
+[KERNEL] E1_P4: idx_in_ens=4, maxActive=333, sim_ratio=0.333, flag=1
+[KERNEL] E2_P0: idx_in_ens=0, maxActive=333, sim_ratio=0.333, flag=1
+[KERNEL] E2_P1: idx_in_ens=1, maxActive=333, sim_ratio=0.333, flag=1
+[KERNEL] E2_P2: idx_in_ens=2, maxActive=333, sim_ratio=0.333, flag=1
+[KERNEL] E2_P3: idx_in_ens=3, maxActive=333, sim_ratio=0.333, flag=1
+[KERNEL] E2_P4: idx_in_ens=4, maxActive=333, sim_ratio=0.333, flag=1
+[MOVE_LIMIT] idx=0 d_nop=100000
+[MOVE_LIMIT] idx=1 d_nop=100000
+[MOVE_LIMIT] idx=2 d_nop=100000
+[MOVE_LIMIT] idx=3 d_nop=100000
+[MOVE_LIMIT] idx=4 d_nop=100000
+[MOVE] idx=1000 ensemble=1 timeidx=0 flag=1 (checking all)
+[MOVE] idx=1001 ensemble=1 timeidx=1 flag=1 (checking all)
+[MOVE] idx=1002 ensemble=1 timeidx=2 flag=1 (checking all)
+[MOVE] idx=1003 ensemble=1 timeidx=3 flag=1 (checking all)
+[MOVE] idx=1004 ensemble=1 timeidx=4 flag=1 (checking all)
+[FINAL] Particle 0: z=212.065 (NaN=0)
+t0 = 0.018519
+[KERNEL] E0_P0: idx_in_ens=0, maxActive=666, sim_ratio=0.667, flag=1
+[KERNEL] E0_P1: idx_in_ens=1, maxActive=666, sim_ratio=0.667, flag=1
+[KERNEL] E0_P2: idx_in_ens=2, maxActive=666, sim_ratio=0.667, flag=1
+[KERNEL] E0_P3: idx_in_ens=3, maxActive=666, sim_ratio=0.667, flag=1
+[KERNEL] E0_P4: idx_in_ens=4, maxActive=666, sim_ratio=0.667, flag=1
+[KERNEL] E1_P0: idx_in_ens=0, maxActive=666, sim_ratio=0.667, flag=1
+[KERNEL] E1_P1: idx_in_ens=1, maxActive=666, sim_ratio=0.667, flag=1
+[KERNEL] E1_P2: idx_in_ens=2, maxActive=666, sim_ratio=0.667, flag=1
+[KERNEL] E1_P3: idx_in_ens=3, maxActive=666, sim_ratio=0.667, flag=1
+[KERNEL] E1_P4: idx_in_ens=4, maxActive=666, sim_ratio=0.667, flag=1
+[KERNEL] E2_P0: idx_in_ens=0, maxActive=666, sim_ratio=0.667, flag=1
+[KERNEL] E2_P1: idx_in_ens=1, maxActive=666, sim_ratio=0.667, flag=1
+[KERNEL] E2_P2: idx_in_ens=2, maxActive=666, sim_ratio=0.667, flag=1
+[KERNEL] E2_P3: idx_in_ens=3, maxActive=666, sim_ratio=0.667, flag=1
+[KERNEL] E2_P4: idx_in_ens=4, maxActive=666, sim_ratio=0.667, flag=1
+[MOVE_LIMIT] idx=0 d_nop=100000
+[MOVE_LIMIT] idx=1 d_nop=100000
+[MOVE_LIMIT] idx=2 d_nop=100000
+[MOVE_LIMIT] idx=3 d_nop=100000
+[MOVE_LIMIT] idx=4 d_nop=100000
+[MOVE] idx=1000 ensemble=1 timeidx=0 flag=1 (checking all)
+[MOVE] idx=1001 ensemble=1 timeidx=1 flag=1 (checking all)
+[MOVE] idx=1002 ensemble=1 timeidx=2 flag=1 (checking all)
+[MOVE] idx=1003 ensemble=1 timeidx=3 flag=1 (checking all)
+[MOVE] idx=1004 ensemble=1 timeidx=4 flag=1 (checking all)
+[FINAL] Particle 0: z=273.862 (NaN=0)
+t0 = 0.027778
+[KERNEL] E0_P0: idx_in_ens=0, maxActive=1000, sim_ratio=1.000, flag=1
+[KERNEL] E0_P1: idx_in_ens=1, maxActive=1000, sim_ratio=1.000, flag=1
+[KERNEL] E0_P2: idx_in_ens=2, maxActive=1000, sim_ratio=1.000, flag=1
+[KERNEL] E0_P3: idx_in_ens=3, maxActive=1000, sim_ratio=1.000, flag=1
+[KERNEL] E0_P4: idx_in_ens=4, maxActive=1000, sim_ratio=1.000, flag=1
+[KERNEL] E1_P0: idx_in_ens=0, maxActive=1000, sim_ratio=1.000, flag=1
+[KERNEL] E1_P1: idx_in_ens=1, maxActive=1000, sim_ratio=1.000, flag=1
+[KERNEL] E1_P2: idx_in_ens=2, maxActive=1000, sim_ratio=1.000, flag=1
+[KERNEL] E1_P3: idx_in_ens=3, maxActive=1000, sim_ratio=1.000, flag=1
+[KERNEL] E1_P4: idx_in_ens=4, maxActive=1000, sim_ratio=1.000, flag=1
+[KERNEL] E2_P0: idx_in_ens=0, maxActive=1000, sim_ratio=1.000, flag=1
+[KERNEL] E2_P1: idx_in_ens=1, maxActive=1000, sim_ratio=1.000, flag=1
+[KERNEL] E2_P2: idx_in_ens=2, maxActive=1000, sim_ratio=1.000, flag=1
+[KERNEL] E2_P3: idx_in_ens=3, maxActive=1000, sim_ratio=1.000, flag=1
+[KERNEL] E2_P4: idx_in_ens=4, maxActive=1000, sim_ratio=1.000, flag=1
+[MOVE_LIMIT] idx=0 d_nop=100000
+[MOVE_LIMIT] idx=1 d_nop=100000
+[MOVE_LIMIT] idx=2 d_nop=100000
+[MOVE_LIMIT] idx=3 d_nop=100000
+[MOVE_LIMIT] idx=4 d_nop=100000
+[MOVE] idx=1000 ensemble=1 timeidx=0 flag=1 (checking all)
+[MOVE] idx=1001 ensemble=1 timeidx=1 flag=1 (checking all)
+[MOVE] idx=1002 ensemble=1 timeidx=2 flag=1 (checking all)
+[MOVE] idx=1003 ensemble=1 timeidx=3 flag=1 (checking all)
+[MOVE] idx=1004 ensemble=1 timeidx=4 flag=1 (checking all)
+-------------------------------------------------
+Time : 300.000000	sec
+Time steps : 	3 of 	3
+[DEBUG_VTK] timestep=3 ensemble_mode=1 nop=1000 enop=100000 total_particles=100000
+[DEBUG_VTK] active_particles=100000
+[VTK_DEBUG] Ensemble mode active, Nens=100, outputting all ensembles
+[VTK] All ensembles VTK output: 100000 particles at timestep 3
+[FINAL] Logged 100000 active particles at simulation end (t=3.00e+02s) to ../logs/ldm_logs/particles_final.csv
+Elapsed data time: 7.01e-01 seconds
+Elapsed time: 8.22e-01 seconds
+  [5.6] Ensemble simulation completed
+  [5.7] Calculating ensemble observations...
+  [ENSEMBLE] Calculating observations for 100 ensembles over 24 time intervals...
+  [ENSEMBLE] Using 100000 particles from simulation memory
+  [ENSEMBLE] Particle distribution by ensemble:
+    Ensemble 0: 1000 total, 1000 active
+    Ensemble 1: 1000 total, 1000 active
+    Ensemble 2: 1000 total, 1000 active
+    Ensemble 3: 1000 total, 1000 active
+    Ensemble 4: 1000 total, 1000 active
+  [ENSEMBLE] Total active particles: 100000 out of 100000
+  [DEBUG] Particle 1: ensemble=0 timeidx=0 pos(-7.40e+01,4.08e+01) receptor(-7.40e+01,4.07e+01) dlat=5.42e-03 dlon=1.29e-02 concentration=4.71e+07
+  [DEBUG] Particle 2: ensemble=0 timeidx=1 pos(-7.39e+01,4.08e+01) receptor(-7.40e+01,4.07e+01) dlat=3.84e-03 dlon=5.48e-02 concentration=4.71e+07
+  [DEBUG] Particle 3: ensemble=0 timeidx=2 pos(-7.39e+01,4.07e+01) receptor(-7.40e+01,4.07e+01) dlat=4.42e-03 dlon=3.75e-02 concentration=4.71e+07
+  [DEBUG] Particle 4: ensemble=0 timeidx=3 pos(-7.39e+01,4.08e+01) receptor(-7.40e+01,4.07e+01) dlat=6.29e-03 dlon=5.62e-02 concentration=4.71e+07
+  [DEBUG] Particle 5: ensemble=0 timeidx=4 pos(-7.39e+01,4.08e+01) receptor(-7.40e+01,4.07e+01) dlat=3.40e-03 dlon=4.30e-02 concentration=4.71e+07
+  [ENSEMBLE] Generated 7200 non-zero observations out of 7200 total
+  [ENSEMBLE] Average observation value: 2.08e+10
+  [ENSEMBLE] Saved binary observations: /home/jrpark/LDM-EKI/logs/eki_logs/ensemble_observations_iter_1.bin
+  [ENSEMBLE] Saved CSV observations: /home/jrpark/LDM-EKI/logs/eki_logs/ensemble_observations_iter_1.csv
+  [5.7] Ensemble observations calculated and saved for EKI feedback
+[STEP 5] Ensemble mode LDM execution completed successfully
+
+==================================================================
+       LDM-EKI Sequential Workflow Completed Successfully         
+==================================================================
+
+[CLEANUP] Cleaning up intermediate particle files...
+[CLEANUP] Intermediate particle files cleaned (0 files removed, kept particles_15min_0.csv and particles_15min_24.csv)

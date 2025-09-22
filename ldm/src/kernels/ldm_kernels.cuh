@@ -176,13 +176,31 @@ __global__ void move_part_by_wind_mpi(
     FlexPres* device_meteorological_flex_pres1){
 
         int idx = blockIdx.x * blockDim.x + threadIdx.x;
-        if(idx >= d_nop) return;
+        
+        // Debug: Print d_nop value for first few threads
+        if(idx < 5) {
+            printf("[MOVE_LIMIT] idx=%d d_nop=%d\n", idx, d_nop);
+        }
+        
+        // Use d_nop to limit particle processing
+        if(idx >= d_nop) {
+            return;
+        }
         //if(idx != 0) return;  // Process all particles
 
         // Debug output disabled for performance
 
         LDM::LDMpart& p = d_part[idx];
+        
+        // Debug ensemble movement - check all particles regardless of flag
+        if(idx >= 1000 && idx < 1005) {
+            printf("[MOVE] idx=%d ensemble=%d timeidx=%d flag=%d (checking all)\n", idx, p.ensemble_id, p.timeidx, p.flag);
+        }
+        
         if(!p.flag) {
+            if(idx >= 1000 && idx < 1005) {
+                printf("[MOVE_SKIP] idx=%d flag=0, skipping\n", idx);
+            }
             return;
         }
         

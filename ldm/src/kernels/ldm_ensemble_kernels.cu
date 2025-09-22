@@ -11,14 +11,17 @@ __global__ void update_particle_flags_ensembles(LDM::LDMpart* d_part,
     
     if (idx >= total) return;
     
-    // Use particle's timeidx to determine activation
-    // activationRatio ranges from 0.0 to 1.0 as simulation progresses
-    // Map particle's timeidx to simulation timeline
-    // Last particle (timeidx = nop_per_ensemble-1) should activate at simulation end
-    float particle_activation_ratio = (float)d_part[idx].timeidx / (float)(nop_per_ensemble - 1);
+    // Calculate which ensemble this particle belongs to
+    int ensemble_id = idx / nop_per_ensemble;
+    int particle_idx_in_ensemble = idx % nop_per_ensemble;
     
-    // Activate particle if current simulation progress >= particle's activation ratio
-    d_part[idx].flag = (activationRatio >= particle_activation_ratio) ? 1 : 0;
+    // Use same logic as single mode: activate particles based on time progression
+    int maxActiveTimeidx = int(nop_per_ensemble * activationRatio);
+    if (particle_idx_in_ensemble <= maxActiveTimeidx) {
+        d_part[idx].flag = 1;
+    } else {
+        d_part[idx].flag = 0;
+    }
 }
 
 // Sanity check kernel implementation

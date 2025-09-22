@@ -137,7 +137,10 @@ void LDM::loadSimulationConfiguration(){
     if (err != cudaSuccess) printf("Error copying wetdep to symbol: %s\n", cudaGetErrorString(err));
     err = cudaMemcpyToSymbol(d_raddecay, &g_raddecay, sizeof(int));
     if (err != cudaSuccess) printf("Error copying raddecay to symbol: %s\n", cudaGetErrorString(err));
+    // Set d_nop based on current mode
     int particles_for_kernel = ensemble_mode_active ? enop : nop;
+    printf("[DEBUG_D_NOP] Setting d_nop - ensemble_mode_active=%d nop=%d enop=%d particles_for_kernel=%d\n", 
+           ensemble_mode_active, nop, enop, particles_for_kernel);
     err = cudaMemcpyToSymbol(d_nop, &particles_for_kernel, sizeof(int));
     if (err != cudaSuccess) printf("Error copying to symbol: %s\n", cudaGetErrorString(err));
     err = cudaMemcpyToSymbol(d_isRural, &isRural, sizeof(bool));
@@ -401,18 +404,21 @@ void LDM::logParticlePositionsForVisualization(int timestep, float currentTime) 
         // Save all timesteps (0-24 quarter hours = 0-6 hours)
         
         // Copy particle data from GPU to CPU (only nop particles)
-        std::vector<LDMpart> cpu_particles(nop);
+        int particles_count = ensemble_mode_active ? (current_Nens * current_nop_per_ensemble) : nop;
+        std::vector<LDMpart> cpu_particles(particles_count);
         if (d_part != nullptr) {
+            int particles_to_copy = particles_count;
             cudaError_t err = cudaMemcpy(cpu_particles.data(), d_part, 
-                                       nop * sizeof(LDMpart), 
+                                       particles_to_copy * sizeof(LDMpart), 
                                        cudaMemcpyDeviceToHost);
             if (err != cudaSuccess) {
                 std::cerr << "[ERROR] Failed to copy particle data from GPU: " << cudaGetErrorString(err) << std::endl;
                 return;
             }
         } else {
-            // Use only the first nop particles from CPU data
-            cpu_particles.assign(part.begin(), part.begin() + std::min((size_t)nop, part.size()));
+            // Use appropriate number of particles based on mode
+            int particles_to_copy = particles_count;
+            cpu_particles.assign(part.begin(), part.begin() + std::min((size_t)particles_to_copy, part.size()));
         }
         
         // Create filename
@@ -457,18 +463,21 @@ void LDM::logParticlePositionsForVisualization(int timestep, float currentTime) 
     // Also save final state at simulation end for complete dataset
     if (currentTime >= (time_end - dt)) {
         // Copy particle data from GPU to CPU (only nop particles)
-        std::vector<LDMpart> cpu_particles(nop);
+        int particles_count = ensemble_mode_active ? (current_Nens * current_nop_per_ensemble) : nop;
+        std::vector<LDMpart> cpu_particles(particles_count);
         if (d_part != nullptr) {
+            int particles_to_copy = particles_count;
             cudaError_t err = cudaMemcpy(cpu_particles.data(), d_part, 
-                                       nop * sizeof(LDMpart), 
+                                       particles_to_copy * sizeof(LDMpart), 
                                        cudaMemcpyDeviceToHost);
             if (err != cudaSuccess) {
                 std::cerr << "[ERROR] Failed to copy particle data from GPU: " << cudaGetErrorString(err) << std::endl;
                 return;
             }
         } else {
-            // Use only the first nop particles from CPU data
-            cpu_particles.assign(part.begin(), part.begin() + std::min((size_t)nop, part.size()));
+            // Use appropriate number of particles based on mode
+            int particles_to_copy = particles_count;
+            cpu_particles.assign(part.begin(), part.begin() + std::min((size_t)particles_to_copy, part.size()));
         }
         
         // Create final filename

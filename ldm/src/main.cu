@@ -28,17 +28,19 @@ __global__ void update_particle_flags_ensembles(LDM::LDMpart* d_part, int nop_pe
     int ensemble_id = idx / nop_per_ensemble;
     int particle_idx_in_ensemble = idx % nop_per_ensemble;
     
-    // Use particle's timeidx to determine activation
-    float particle_activation_ratio = (float)d_part[idx].timeidx / (float)(nop_per_ensemble - 1);
-    
-    // Activate particle if current simulation progress >= particle's activation ratio
-    d_part[idx].flag = (activationRatio >= particle_activation_ratio) ? 1 : 0;
+    // Each ensemble should activate particles based on ensemble-local indices
+    int maxActiveTimeidx = int(nop_per_ensemble * activationRatio);
+    if (particle_idx_in_ensemble <= maxActiveTimeidx) {
+        d_part[idx].flag = 1;
+    } else {
+        d_part[idx].flag = 0;
+    }
     
     // Debug: Print activation info for first few particles of first few ensembles
-    if (ensemble_id < 3 && particle_idx_in_ensemble < 5 && threadIdx.x == 0) {
-        printf("[KERNEL] E%d_P%d: timeidx=%d, activation_ratio=%.3f, sim_ratio=%.3f, flag=%d\n",
-               ensemble_id, particle_idx_in_ensemble, d_part[idx].timeidx, 
-               particle_activation_ratio, activationRatio, d_part[idx].flag);
+    if (ensemble_id < 3 && particle_idx_in_ensemble < 5) {
+        printf("[KERNEL] E%d_P%d: idx_in_ens=%d, maxActive=%d, sim_ratio=%.3f, flag=%d\n",
+               ensemble_id, particle_idx_in_ensemble, particle_idx_in_ensemble, 
+               maxActiveTimeidx, activationRatio, d_part[idx].flag);
     }
 }
 
@@ -224,7 +226,11 @@ bool runSingleModeLDM(LDM& ldm) {
     
     // Ensure single mode (no ensemble)
     ensemble_mode_active = false;
+    ldm.ensemble_mode_active = false;
     Nens = 1;
+    
+    // Reset nop to correct single mode value from config file
+    nop = g_config.getInt("Total_number_of_particle", 1000);
     
     // Initialize particles in single mode
     ldm.initializeParticles();
@@ -242,6 +248,12 @@ bool runSingleModeLDM(LDM& ldm) {
     ldm.stopTimer();
     
     std::cout << "  [1.5] Single mode simulation completed" << std::endl;
+    
+    // Ensure d_nop is properly set to single mode value after simulation
+    cudaError_t err = cudaMemcpyToSymbol("d_nop", &nop, sizeof(int));
+    if (err == cudaSuccess) {
+        std::cout << "  [1.5.1] Confirmed d_nop reset to single mode value: " << nop << std::endl;
+    }
     
     return true;
 }
@@ -315,8 +327,8 @@ bool runEnsembleLDM(LDM& ldm, const std::vector<std::vector<float>>& ensemble_ma
     std::cout << "  [5.2] Ensemble configuration: " << Nens << " ensembles, " 
               << nop_per_ensemble << " particles each, total " << (Nens * nop_per_ensemble) << std::endl;
     
-    // Set ensemble total particles (enop = nop * Nens)
-    enop = nop * Nens;
+    // Set ensemble total particles (enop = Nens * nop_per_ensemble)
+    enop = Nens * nop_per_ensemble;
     
     // The ensemble matrix already contains ensemble-specific data
     std::cout << "  [5.3] Using ensemble-specific emission data..." << std::endl;
@@ -357,13 +369,28 @@ bool runEnsembleLDM(LDM& ldm, const std::vector<std::vector<float>>& ensemble_ma
     ldm.current_Nens = Nens;
     ldm.current_nop_per_ensemble = nop_per_ensemble;
     
+    // Make sure enop is accessible in LDM class
+    std::cout << "  [5.5.1] Setting ensemble total particles: " << enop << std::endl;
+    
+    // Force d_nop to be set correctly for ensemble mode by reloading configuration
+    std::cout << "  [5.5.2] Reloading simulation configuration for ensemble mode..." << std::endl;
+    ldm.loadSimulationConfiguration();
+    std::cout << "  [5.5.3] Simulation configuration reloaded for ensemble mode" << std::endl;
+    
     // Run ensemble simulation
     ldm.startTimer();
     ldm.runSimulation();
     ldm.stopTimer();
     
     // Deactivate ensemble mode after simulation
+    ensemble_mode_active = false;
     ldm.ensemble_mode_active = false;
+    
+    // Reset d_nop back to single mode value
+    cudaError_t reset_err = cudaMemcpyToSymbol("d_nop", &nop, sizeof(int));
+    if (reset_err == cudaSuccess) {
+        std::cout << "  [5.6.1] Reset d_nop back to single mode value: " << nop << std::endl;
+    }
     
     std::cout << "  [5.6] Ensemble simulation completed" << std::endl;
     
@@ -516,7 +543,7 @@ bool initializeEnsembleParticles(LDM& ldm, const std::vector<std::vector<float>>
             particle.x = source_x;
             particle.y = source_y;
             particle.z = source_z;
-            particle.timeidx = i;
+            particle.timeidx = i;  // Use ensemble-local index for individual diffusion
             particle.flag = 0;  // Initially inactive
             particle.ensemble_id = e;
             particle.global_id = global_idx + 1;
@@ -580,7 +607,7 @@ bool initializeEnsembleParticles(LDM& ldm, const std::vector<std::vector<float>>
         cudaFree(ldm.d_part);
     }
     
-    const size_t total_size = nop * sizeof(LDM::LDMpart);
+    const size_t total_size = enop * sizeof(LDM::LDMpart);
     cudaError_t err = cudaMalloc((void**)&ldm.d_part, total_size);
     if (err != cudaSuccess) {
         std::cerr << "[ERROR] Failed to allocate ensemble device memory: " << cudaGetErrorString(err) << std::endl;

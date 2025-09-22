@@ -151,8 +151,8 @@ bool LDM::initializeParticlesEnsemblesFlat(int Nens,
     // Update global particle count
     nop = d_nop_total;
     
-    // Update device constant memory
-    cudaError_t err = cudaMemcpyToSymbol(d_nop, &nop, sizeof(int));
+    // Update device constant memory with total ensemble particles
+    cudaError_t err = cudaMemcpyToSymbol(d_nop, &d_nop_total, sizeof(int));
     if (err != cudaSuccess) {
         std::cerr << "[ERROR] Failed to copy nop to device: " << cudaGetErrorString(err) << std::endl;
         return false;
