@@ -170,6 +170,19 @@ private:
     FlexUnis* device_meteorological_flex_unis2;
     FlexPres* device_meteorological_flex_pres2;
 
+    // All timesteps meteorological data arrays
+    FlexUnis** device_meteorological_flex_unis_all;
+    FlexPres** device_meteorological_flex_pres_all;
+    float4** host_unisA_all;
+    float4** host_unisB_all; 
+    float4** host_presA_all;
+    float4** host_presB_all;
+    cudaArray** d_unisArrayA_all;
+    cudaArray** d_unisArrayB_all;
+    cudaArray** d_presArrayA_all;
+    cudaArray** d_presArrayB_all;
+    int num_timesteps_available;
+
     float4* host_unisA0; // HMIX, USTR, WSTR, OBKL
     float4* host_unisB0; // VDEP, LPREC, CPREC, TCC
     float4* host_unisA1;
@@ -395,6 +408,10 @@ public:
     void loadFlexGFSData();  // Used in time_update_mpi
     void loadMeteorologicalHeightData();
     void loadFlexHeightData();
+    void loadAllTimestepsToMemory();
+    bool loadSingleTimestepFromFile(int timestep, FlexPres* flexpresdata, FlexUnis* flexunisdata);
+    FlexUnis* getMeteorologicalDataUnis(int timestep);
+    FlexPres* getMeteorologicalDataPres(int timestep);
 
     // ldm_plot.cuh
     int countActiveParticles();

@@ -8,7 +8,18 @@ extern float* d_exp_matrix_global;
 LDM::LDM() 
     : device_meteorological_data_pres(nullptr), 
       device_meteorological_data_unis(nullptr), 
-      device_meteorological_data_etas(nullptr){
+      device_meteorological_data_etas(nullptr),
+      device_meteorological_flex_unis_all(nullptr),
+      device_meteorological_flex_pres_all(nullptr),
+      host_unisA_all(nullptr),
+      host_unisB_all(nullptr),
+      host_presA_all(nullptr),
+      host_presB_all(nullptr),
+      d_unisArrayA_all(nullptr),
+      d_unisArrayB_all(nullptr),
+      d_presArrayA_all(nullptr),
+      d_presArrayB_all(nullptr),
+      num_timesteps_available(0){
         // Initialize CRAM A matrix system
         std::string cram_path = "./cram/A60.csv";
         if (!initialize_cram_system(cram_path.c_str())) {
@@ -30,6 +41,52 @@ LDM::~LDM(){
         }
         if (d_part){
             cudaFree(d_part);
+        }
+        
+        // Free all timesteps meteorological data
+        if (device_meteorological_flex_unis_all) {
+            for (int t = 0; t < num_timesteps_available; t++) {
+                if (device_meteorological_flex_unis_all[t]) {
+                    cudaFree(device_meteorological_flex_unis_all[t]);
+                }
+                if (device_meteorological_flex_pres_all[t]) {
+                    cudaFree(device_meteorological_flex_pres_all[t]);
+                }
+                if (host_unisA_all[t]) {
+                    delete[] host_unisA_all[t];
+                }
+                if (host_unisB_all[t]) {
+                    delete[] host_unisB_all[t];
+                }
+                if (host_presA_all[t]) {
+                    delete[] host_presA_all[t];
+                }
+                if (host_presB_all[t]) {
+                    delete[] host_presB_all[t];
+                }
+                if (d_unisArrayA_all[t]) {
+                    cudaFreeArray(d_unisArrayA_all[t]);
+                }
+                if (d_unisArrayB_all[t]) {
+                    cudaFreeArray(d_unisArrayB_all[t]);
+                }
+                if (d_presArrayA_all[t]) {
+                    cudaFreeArray(d_presArrayA_all[t]);
+                }
+                if (d_presArrayB_all[t]) {
+                    cudaFreeArray(d_presArrayB_all[t]);
+                }
+            }
+            delete[] device_meteorological_flex_unis_all;
+            delete[] device_meteorological_flex_pres_all;
+            delete[] host_unisA_all;
+            delete[] host_unisB_all;
+            delete[] host_presA_all;
+            delete[] host_presB_all;
+            delete[] d_unisArrayA_all;
+            delete[] d_unisArrayB_all;
+            delete[] d_presArrayA_all;
+            delete[] d_presArrayB_all;
         }
         
     }
@@ -184,12 +241,23 @@ void LDM::runSimulation(){
         cudaDeviceSynchronize();
 
         NuclideConfig* nucConfig = NuclideConfig::getInstance();
+        
+        // Calculate meteorological data indices based on current time
+        int time_idx = static_cast<int>(currentTime / time_interval);
+        int next_time_idx = time_idx + 1;
+        
+        // Ensure indices are within bounds
+        if (time_idx >= num_timesteps_available) time_idx = num_timesteps_available - 1;
+        if (next_time_idx >= num_timesteps_available) next_time_idx = num_timesteps_available - 1;
+        
+        FlexUnis* current_unis = getMeteorologicalDataUnis(time_idx);
+        FlexPres* current_pres = getMeteorologicalDataPres(time_idx);
+        FlexUnis* next_unis = getMeteorologicalDataUnis(next_time_idx);
+        FlexPres* next_pres = getMeteorologicalDataPres(next_time_idx);
+        
         move_part_by_wind_mpi<<<blocks, threadsPerBlock>>>
         (d_part, t0, mpiRank, d_dryDep, d_wetDep, mesh.lon_count, mesh.lat_count,
-            device_meteorological_flex_unis0,
-            device_meteorological_flex_pres0,
-            device_meteorological_flex_unis1,
-            device_meteorological_flex_pres1);
+            current_unis, current_pres, next_unis, next_pres);
         cudaDeviceSynchronize();
 
         timestep++; 
@@ -252,7 +320,7 @@ void LDM::runSimulation(){
         auto duration0 = std::chrono::duration_cast<std::chrono::microseconds>(stepEnd - stepStart);
         totalElapsedTime += static_cast<double>(duration0.count()/1.0e6);
 
-        // Check GFS loading condition every timestep 
+        // Update GFS index based on time (no more file loading needed)
         int left_val = static_cast<int>(currentTime/time_interval);
         if(timestep >= 1079 && timestep <= 1081) {
             printf("[DEBUG] Step %d: currentTime=%.1f, left=%d, gfs_idx=%d\n", timestep, currentTime, left_val, gfs_idx);
@@ -262,9 +330,9 @@ void LDM::runSimulation(){
 
         
         if(left_val > gfs_idx) {
-            printf("[INFO] Condition met: currentTime=%.1f, time_interval=%d, left=%d, gfs_idx=%d\n", 
-                   currentTime, time_interval, left_val, gfs_idx);
-            loadFlexGFSData();
+            printf("[INFO] GFS index updated: currentTime=%.1f, time_interval=%d, left=%d, gfs_idx=%d->%d\n", 
+                   currentTime, time_interval, left_val, gfs_idx, left_val);
+            gfs_idx = left_val;  // Simply update index, data already in memory
         }
 
         // if (ensemble_mode_active) {

@@ -81,6 +81,7 @@ class LDM;
 
 // Function declaration for ensemble initialization logging
 void saveEnsembleInitializationLog(int Nens, int nop_per_ensemble, 
-                                   const std::vector<float>& emission_flat, int T);
+                                   const std::vector<float>& emission_flat, int T,
+                                   const std::vector<Source>& sources);
 
 #endif // LDM_ENSEMBLE_INIT_CUH

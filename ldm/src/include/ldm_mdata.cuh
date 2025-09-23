@@ -4,6 +4,57 @@
 void LDM::initializeFlexGFSData(){
 
     std::cout << "[DEBUG] Starting read_meteorological_flex_gfs_init3 function..." << std::endl;
+    
+    // First, detect how many timestep files are available
+    num_timesteps_available = 0;
+    char test_filename[256];
+    while (true) {
+        sprintf(test_filename, "./data/input/flexprewind/%d.txt", num_timesteps_available);
+        std::ifstream test_file(test_filename);
+        if (!test_file.is_open()) {
+            break;
+        }
+        test_file.close();
+        num_timesteps_available++;
+        if (num_timesteps_available > 100) { // Safety limit (more reasonable for 3-hour intervals)
+            std::cerr << "[WARNING] Too many meteorological files detected (>100), limiting to 100" << std::endl;
+            num_timesteps_available = 100;
+            break;
+        }
+    }
+    
+    if (num_timesteps_available < 3) {
+        std::cerr << "[ERROR] Not enough meteorological files found. Need at least 3, found " << num_timesteps_available << std::endl;
+        return;
+    }
+    
+    std::cout << "[INFO] Found " << num_timesteps_available << " meteorological timestep files" << std::endl;
+    
+    // Allocate arrays for all timesteps
+    device_meteorological_flex_unis_all = new FlexUnis*[num_timesteps_available];
+    device_meteorological_flex_pres_all = new FlexPres*[num_timesteps_available];
+    host_unisA_all = new float4*[num_timesteps_available];
+    host_unisB_all = new float4*[num_timesteps_available];
+    host_presA_all = new float4*[num_timesteps_available];
+    host_presB_all = new float4*[num_timesteps_available];
+    d_unisArrayA_all = new cudaArray*[num_timesteps_available];
+    d_unisArrayB_all = new cudaArray*[num_timesteps_available];
+    d_presArrayA_all = new cudaArray*[num_timesteps_available];
+    d_presArrayB_all = new cudaArray*[num_timesteps_available];
+    
+    // Initialize all pointers to nullptr
+    for (int t = 0; t < num_timesteps_available; t++) {
+        device_meteorological_flex_unis_all[t] = nullptr;
+        device_meteorological_flex_pres_all[t] = nullptr;
+        host_unisA_all[t] = nullptr;
+        host_unisB_all[t] = nullptr;
+        host_presA_all[t] = nullptr;
+        host_presB_all[t] = nullptr;
+        d_unisArrayA_all[t] = nullptr;
+        d_unisArrayB_all[t] = nullptr;
+        d_presArrayA_all[t] = nullptr;
+        d_presArrayB_all[t] = nullptr;
+    }
 
     flex_hgt.resize(dimZ_GFS);
     std::cout << "[DEBUG] flex_hgt vector resized to " << dimZ_GFS << " elements" << std::endl;
@@ -1060,6 +1111,337 @@ void LDM::initializeFlexGFSData(){
     delete[] flexunisdata;
     delete[] flexpresdata;
 
+    // Now load all remaining timesteps into memory
+    loadAllTimestepsToMemory();
+
+}
+
+void LDM::loadAllTimestepsToMemory() {
+    std::cout << "[INFO] Loading all " << num_timesteps_available << " timesteps to GPU memory..." << std::endl;
+    
+    size_t pres_data_size = (dimX_GFS + 1) * dimY_GFS * dimZ_GFS;
+    size_t unis_data_size = (dimX_GFS + 1) * dimY_GFS;
+    int size2D = (dimX_GFS + 1) * dimY_GFS;
+    int size3D = (dimX_GFS + 1) * dimY_GFS * dimZ_GFS;
+    
+    size_t width = dimX_GFS + 1;
+    size_t height = dimY_GFS;
+    cudaExtent extent = make_cudaExtent(dimX_GFS+1, dimY_GFS, dimZ_GFS);
+    
+    for (int t = 0; t < num_timesteps_available; t++) {
+        std::cout << "[INFO] Loading timestep " << t << "..." << std::endl;
+        
+        // Allocate temporary host memory
+        FlexPres* flexpresdata = new FlexPres[pres_data_size];
+        FlexUnis* flexunisdata = new FlexUnis[unis_data_size];
+        
+        // Load data from file
+        if (!loadSingleTimestepFromFile(t, flexpresdata, flexunisdata)) {
+            std::cerr << "[ERROR] Failed to load timestep " << t << std::endl;
+            delete[] flexpresdata;
+            delete[] flexunisdata;
+            continue;
+        }
+        
+        // Allocate GPU memory for this timestep
+        cudaError_t err = cudaMalloc((void**)&device_meteorological_flex_pres_all[t], pres_data_size * sizeof(FlexPres));
+        if (err != cudaSuccess) {
+            std::cerr << "[ERROR] Failed to allocate GPU memory for timestep " << t << ": " << cudaGetErrorString(err) << std::endl;
+            delete[] flexpresdata;
+            delete[] flexunisdata;
+            continue;
+        }
+        
+        err = cudaMalloc((void**)&device_meteorological_flex_unis_all[t], unis_data_size * sizeof(FlexUnis));
+        if (err != cudaSuccess) {
+            std::cerr << "[ERROR] Failed to allocate GPU memory for timestep " << t << ": " << cudaGetErrorString(err) << std::endl;
+            cudaFree(device_meteorological_flex_pres_all[t]);
+            device_meteorological_flex_pres_all[t] = nullptr;
+            delete[] flexpresdata;
+            delete[] flexunisdata;
+            continue;
+        }
+        
+        // Copy to GPU
+        err = cudaMemcpy(device_meteorological_flex_pres_all[t], flexpresdata, pres_data_size * sizeof(FlexPres), cudaMemcpyHostToDevice);
+        if (err != cudaSuccess) {
+            std::cerr << "[ERROR] Failed to copy pres data to GPU for timestep " << t << ": " << cudaGetErrorString(err) << std::endl;
+        }
+        
+        err = cudaMemcpy(device_meteorological_flex_unis_all[t], flexunisdata, unis_data_size * sizeof(FlexUnis), cudaMemcpyHostToDevice);
+        if (err != cudaSuccess) {
+            std::cerr << "[ERROR] Failed to copy unis data to GPU for timestep " << t << ": " << cudaGetErrorString(err) << std::endl;
+        }
+        
+        // Prepare texture arrays
+        host_unisA_all[t] = new float4[size2D];
+        host_unisB_all[t] = new float4[size2D];
+        host_presA_all[t] = new float4[size3D];
+        host_presB_all[t] = new float4[size3D];
+        
+        for(int i = 0; i < size2D; i++){
+            host_unisA_all[t][i] = make_float4(
+                flexunisdata[i].HMIX, flexunisdata[i].USTR, flexunisdata[i].WSTR, flexunisdata[i].OBKL);
+            host_unisB_all[t][i] = make_float4(
+                flexunisdata[i].VDEP, flexunisdata[i].LPREC, flexunisdata[i].CPREC, flexunisdata[i].TCC);
+        }
+        
+        for(int i = 0; i < size3D; i++){
+            host_presA_all[t][i] = make_float4(
+                flexpresdata[i].DRHO, flexpresdata[i].RHO, flexpresdata[i].TT, flexpresdata[i].QV);
+            host_presB_all[t][i] = make_float4(
+                flexpresdata[i].UU, flexpresdata[i].VV, flexpresdata[i].WW, 0.0f);
+        }
+        
+        // Create texture arrays
+        cudaMallocArray(&d_unisArrayA_all[t], &channelDesc2D, width, height);
+        cudaMallocArray(&d_unisArrayB_all[t], &channelDesc2D, width, height);
+        cudaMalloc3DArray(&d_presArrayA_all[t], &channelDesc3D, extent);
+        cudaMalloc3DArray(&d_presArrayB_all[t], &channelDesc3D, extent);
+        
+        // Copy to texture arrays
+        cudaMemcpy2DToArray(d_unisArrayA_all[t], 0, 0, host_unisA_all[t], width*sizeof(float4), width*sizeof(float4), height, cudaMemcpyHostToDevice);
+        cudaMemcpy2DToArray(d_unisArrayB_all[t], 0, 0, host_unisB_all[t], width*sizeof(float4), width*sizeof(float4), height, cudaMemcpyHostToDevice);
+        
+        cudaMemcpy3DParms copyParamsA = {0};
+        copyParamsA.srcPtr = make_cudaPitchedPtr((void*)host_presA_all[t], width*sizeof(float4), width, height);
+        copyParamsA.dstArray = d_presArrayA_all[t];
+        copyParamsA.extent = extent;
+        copyParamsA.kind = cudaMemcpyHostToDevice;
+        cudaMemcpy3D(&copyParamsA);
+        
+        cudaMemcpy3DParms copyParamsB = {0};
+        copyParamsB.srcPtr = make_cudaPitchedPtr((void*)host_presB_all[t], width*sizeof(float4), width, height);
+        copyParamsB.dstArray = d_presArrayB_all[t];
+        copyParamsB.extent = extent;
+        copyParamsB.kind = cudaMemcpyHostToDevice;
+        cudaMemcpy3D(&copyParamsB);
+        
+        // Clean up temporary host memory
+        delete[] flexpresdata;
+        delete[] flexunisdata;
+    }
+    
+    std::cout << "[INFO] Successfully loaded " << num_timesteps_available << " timesteps to GPU memory" << std::endl;
+}
+
+bool LDM::loadSingleTimestepFromFile(int timestep, FlexPres* flexpresdata, FlexUnis* flexunisdata) {
+    char filename[256];
+    sprintf(filename, "./data/input/flexprewind/%d.txt", timestep);
+    
+    std::ifstream file(filename, std::ios::binary);
+    if (!file) {
+        std::cerr << "[ERROR] Cannot open file: " << filename << std::endl;
+        return false;
+    }
+    
+    int recordMarker;
+    
+    // Load HMIX
+    for (int i = 0; i < dimX_GFS+1; ++i) {
+        for (int j = 0; j < dimY_GFS; ++j) {
+            int index = i * dimY_GFS + j; 
+            file.read(reinterpret_cast<char*>(&recordMarker), sizeof(int));
+            file.read(reinterpret_cast<char*>(&flexunisdata[index].HMIX), sizeof(float));
+            file.read(reinterpret_cast<char*>(&recordMarker), sizeof(int));
+        }
+    }
+    
+    // Load TROP
+    for (int i = 0; i < dimX_GFS+1; ++i) {
+        for (int j = 0; j < dimY_GFS; ++j) {
+            int index = i * dimY_GFS + j; 
+            file.read(reinterpret_cast<char*>(&recordMarker), sizeof(int));
+            file.read(reinterpret_cast<char*>(&flexunisdata[index].TROP), sizeof(float));
+            file.read(reinterpret_cast<char*>(&recordMarker), sizeof(int));
+        }
+    }
+    
+    // Load USTR, WSTR, OBKL, LPREC, CPREC, TCC, CLDH
+    for (int i = 0; i < dimX_GFS+1; ++i) {
+        for (int j = 0; j < dimY_GFS; ++j) {
+            int index = i * dimY_GFS + j; 
+            file.read(reinterpret_cast<char*>(&recordMarker), sizeof(int));
+            file.read(reinterpret_cast<char*>(&flexunisdata[index].USTR), sizeof(float));
+            file.read(reinterpret_cast<char*>(&recordMarker), sizeof(int));
+        }
+    }
+    
+    for (int i = 0; i < dimX_GFS+1; ++i) {
+        for (int j = 0; j < dimY_GFS; ++j) {
+            int index = i * dimY_GFS + j; 
+            file.read(reinterpret_cast<char*>(&recordMarker), sizeof(int));
+            file.read(reinterpret_cast<char*>(&flexunisdata[index].WSTR), sizeof(float));
+            file.read(reinterpret_cast<char*>(&recordMarker), sizeof(int));
+        }
+    }
+    
+    for (int i = 0; i < dimX_GFS+1; ++i) {
+        for (int j = 0; j < dimY_GFS; ++j) {
+            int index = i * dimY_GFS + j; 
+            file.read(reinterpret_cast<char*>(&recordMarker), sizeof(int));
+            file.read(reinterpret_cast<char*>(&flexunisdata[index].OBKL), sizeof(float));
+            file.read(reinterpret_cast<char*>(&recordMarker), sizeof(int));
+        }
+    }
+    
+    for (int i = 0; i < dimX_GFS+1; ++i) {
+        for (int j = 0; j < dimY_GFS; ++j) {
+            int index = i * dimY_GFS + j; 
+            file.read(reinterpret_cast<char*>(&recordMarker), sizeof(int));
+            file.read(reinterpret_cast<char*>(&flexunisdata[index].LPREC), sizeof(float));
+            file.read(reinterpret_cast<char*>(&recordMarker), sizeof(int));
+        }
+    }
+    
+    for (int i = 0; i < dimX_GFS+1; ++i) {
+        for (int j = 0; j < dimY_GFS; ++j) {
+            int index = i * dimY_GFS + j; 
+            file.read(reinterpret_cast<char*>(&recordMarker), sizeof(int));
+            file.read(reinterpret_cast<char*>(&flexunisdata[index].CPREC), sizeof(float));
+            file.read(reinterpret_cast<char*>(&recordMarker), sizeof(int));
+        }
+    }
+    
+    for (int i = 0; i < dimX_GFS+1; ++i) {
+        for (int j = 0; j < dimY_GFS; ++j) {
+            int index = i * dimY_GFS + j; 
+            file.read(reinterpret_cast<char*>(&recordMarker), sizeof(int));
+            file.read(reinterpret_cast<char*>(&flexunisdata[index].TCC), sizeof(float));
+            file.read(reinterpret_cast<char*>(&recordMarker), sizeof(int));
+        }
+    }
+    
+    for (int i = 0; i < dimX_GFS+1; ++i) {
+        for (int j = 0; j < dimY_GFS; ++j) {
+            int index = i * dimY_GFS + j; 
+            file.read(reinterpret_cast<char*>(&recordMarker), sizeof(int));
+            int intBuffer;
+            file.read(reinterpret_cast<char*>(&intBuffer), sizeof(int));
+            flexunisdata[index].CLDH = static_cast<float>(intBuffer);
+            file.read(reinterpret_cast<char*>(&recordMarker), sizeof(int));
+        }
+    }
+    
+    // Load 3D pressure level data (RHO, TT, UU, VV, WW)
+    for (int i = 0; i < dimX_GFS+1; ++i) {
+        for (int j = 0; j < dimY_GFS; ++j) {
+            for (int k = 0; k < dimZ_GFS; ++k) {
+                int index = i * dimY_GFS * dimZ_GFS + j * dimZ_GFS + k; 
+                file.read(reinterpret_cast<char*>(&recordMarker), sizeof(int));
+                file.read(reinterpret_cast<char*>(&flexpresdata[index].RHO), sizeof(float));
+                file.read(reinterpret_cast<char*>(&recordMarker), sizeof(int));
+            }
+        }
+    }
+    
+    for (int i = 0; i < dimX_GFS+1; ++i) {
+        for (int j = 0; j < dimY_GFS; ++j) {
+            for (int k = 0; k < dimZ_GFS; ++k) {
+                int index = i * dimY_GFS * dimZ_GFS + j * dimZ_GFS + k; 
+                file.read(reinterpret_cast<char*>(&recordMarker), sizeof(int));
+                file.read(reinterpret_cast<char*>(&flexpresdata[index].TT), sizeof(float));
+                file.read(reinterpret_cast<char*>(&recordMarker), sizeof(int));
+            }
+        }
+    }
+    
+    for (int i = 0; i < dimX_GFS+1; ++i) {
+        for (int j = 0; j < dimY_GFS; ++j) {
+            for (int k = 0; k < dimZ_GFS; ++k) {
+                int index = i * dimY_GFS * dimZ_GFS + j * dimZ_GFS + k; 
+                file.read(reinterpret_cast<char*>(&recordMarker), sizeof(int));
+                file.read(reinterpret_cast<char*>(&flexpresdata[index].UU), sizeof(float));
+                file.read(reinterpret_cast<char*>(&recordMarker), sizeof(int));
+            }
+        }
+    }
+    
+    for (int i = 0; i < dimX_GFS+1; ++i) {
+        for (int j = 0; j < dimY_GFS; ++j) {
+            for (int k = 0; k < dimZ_GFS; ++k) {
+                int index = i * dimY_GFS * dimZ_GFS + j * dimZ_GFS + k; 
+                file.read(reinterpret_cast<char*>(&recordMarker), sizeof(int));
+                file.read(reinterpret_cast<char*>(&flexpresdata[index].VV), sizeof(float));
+                file.read(reinterpret_cast<char*>(&recordMarker), sizeof(int));
+            }
+        }
+    }
+    
+    for (int i = 0; i < dimX_GFS+1; ++i) {
+        for (int j = 0; j < dimY_GFS; ++j) {
+            for (int k = 0; k < dimZ_GFS; ++k) {
+                int index = i * dimY_GFS * dimZ_GFS + j * dimZ_GFS + k; 
+                file.read(reinterpret_cast<char*>(&recordMarker), sizeof(int));
+                file.read(reinterpret_cast<char*>(&flexpresdata[index].WW), sizeof(float));
+                file.read(reinterpret_cast<char*>(&recordMarker), sizeof(int));
+            }
+        }
+    }
+    
+    // Load VDEP
+    for (int i = 0; i < dimX_GFS+1; ++i) {
+        for (int j = 0; j < dimY_GFS; ++j) {
+            int index = i * dimY_GFS + j; 
+            file.read(reinterpret_cast<char*>(&recordMarker), sizeof(int));
+            file.read(reinterpret_cast<char*>(&flexunisdata[index].VDEP), sizeof(float));
+            file.read(reinterpret_cast<char*>(&recordMarker), sizeof(int));
+        }
+    }
+    
+    // Load CLDS
+    for (int i = 0; i < dimX_GFS+1; ++i) {
+        for (int j = 0; j < dimY_GFS; ++j) {
+            for (int k = 0; k < dimZ_GFS; ++k) {
+                int index = i * dimY_GFS * dimZ_GFS + j * dimZ_GFS + k; 
+                file.read(reinterpret_cast<char*>(&recordMarker), sizeof(int));
+                int intBuffer;
+                file.read(reinterpret_cast<char*>(&intBuffer), sizeof(int));
+                flexpresdata[index].CLDS = static_cast<float>(intBuffer);
+                file.read(reinterpret_cast<char*>(&recordMarker), sizeof(int));
+            }
+        }
+    }
+    
+    // Calculate DRHO
+    for (int i = 0; i < dimX_GFS+1; ++i) {
+        for (int j = 0; j < dimY_GFS; ++j) {
+            flexpresdata[i * dimY_GFS * dimZ_GFS + j * dimZ_GFS].DRHO = 
+            (flexpresdata[i * dimY_GFS * dimZ_GFS + j * dimZ_GFS + 1].RHO - flexpresdata[i * dimY_GFS * dimZ_GFS + j * dimZ_GFS].RHO) /
+            (flex_hgt[1]-flex_hgt[0]);
+            
+            for (int k = 1; k < dimZ_GFS-2; ++k) {
+                int index = i * dimY_GFS * dimZ_GFS + j * dimZ_GFS + k;
+                flexpresdata[index].DRHO = 
+                (flexpresdata[index+1].RHO - flexpresdata[index-1].RHO) / (flex_hgt[k+1]-flex_hgt[k-1]);
+            }
+            
+            flexpresdata[i * dimY_GFS * dimZ_GFS + j * dimZ_GFS + dimZ_GFS-2].DRHO = 
+            flexpresdata[i * dimY_GFS * dimZ_GFS + j * dimZ_GFS + dimZ_GFS-3].DRHO;
+            
+            flexpresdata[i * dimY_GFS * dimZ_GFS + j * dimZ_GFS + dimZ_GFS-1].DRHO = 
+            flexpresdata[i * dimY_GFS * dimZ_GFS + j * dimZ_GFS + dimZ_GFS-2].DRHO;
+        }
+    }
+    
+    file.close();
+    return true;
+}
+
+FlexUnis* LDM::getMeteorologicalDataUnis(int timestep) {
+    if (timestep < 0 || timestep >= num_timesteps_available) {
+        std::cerr << "[ERROR] Invalid timestep " << timestep << " requested (available: 0-" << (num_timesteps_available-1) << ")" << std::endl;
+        return nullptr;
+    }
+    return device_meteorological_flex_unis_all[timestep];
+}
+
+FlexPres* LDM::getMeteorologicalDataPres(int timestep) {
+    if (timestep < 0 || timestep >= num_timesteps_available) {
+        std::cerr << "[ERROR] Invalid timestep " << timestep << " requested (available: 0-" << (num_timesteps_available-1) << ")" << std::endl;
+        return nullptr;
+    }
+    return device_meteorological_flex_pres_all[timestep];
 }
 
 void LDM::loadFlexGFSData(){

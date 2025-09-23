@@ -208,10 +208,22 @@ bool LDM::runSimulationEnsembles(int Nens) {
         // Run particle movement
         const float t0 = (currentTime - static_cast<int>((currentTime-1e-5)/time_interval)*time_interval) / time_interval;
         
+        // Calculate meteorological data indices based on current time
+        int time_idx = static_cast<int>(currentTime / time_interval);
+        int next_time_idx = time_idx + 1;
+        
+        // Ensure indices are within bounds
+        if (time_idx >= num_timesteps_available) time_idx = num_timesteps_available - 1;
+        if (next_time_idx >= num_timesteps_available) next_time_idx = num_timesteps_available - 1;
+        
+        FlexUnis* current_unis = getMeteorologicalDataUnis(time_idx);
+        FlexPres* current_pres = getMeteorologicalDataPres(time_idx);
+        FlexUnis* next_unis = getMeteorologicalDataUnis(next_time_idx);
+        FlexPres* next_pres = getMeteorologicalDataPres(next_time_idx);
+        
         move_part_by_wind_mpi<<<blocks, threadsPerBlock>>>(
             d_part, t0, mpiRank, d_dryDep, d_wetDep, mesh.lon_count, mesh.lat_count,
-            device_meteorological_flex_unis0, device_meteorological_flex_pres0,
-            device_meteorological_flex_unis1, device_meteorological_flex_pres1);
+            current_unis, current_pres, next_unis, next_pres);
         cudaDeviceSynchronize();
         
         if (timestep % freq_output == 0) {

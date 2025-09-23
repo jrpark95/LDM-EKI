@@ -213,7 +213,7 @@ bool LDM::initializeParticlesEnsemblesFlat(int Nens,
     }
     
     // Save initialization values to integration_logs
-    saveEnsembleInitializationLog(Nens, nop_per_ensemble, emission_flat, T);
+    saveEnsembleInitializationLog(Nens, nop_per_ensemble, emission_flat, T, sources);
     
     std::cout << "[INFO] Ensemble initialization successful: " << Nens << " ensembles, "
               << nop_per_ensemble << " particles each, total " << d_nop_total << " particles" << std::endl;
@@ -223,7 +223,8 @@ bool LDM::initializeParticlesEnsemblesFlat(int Nens,
 
 // Function to save ensemble initialization log
 void saveEnsembleInitializationLog(int Nens, int nop_per_ensemble, 
-                                   const std::vector<float>& emission_flat, int T) {
+                                   const std::vector<float>& emission_flat, int T,
+                                   const std::vector<Source>& sources) {
     // Create timestamp
     auto now = std::chrono::system_clock::now();
     auto time_t = std::chrono::system_clock::to_time_t(now);
@@ -261,9 +262,9 @@ void saveEnsembleInitializationLog(int Nens, int nop_per_ensemble,
             const int global_id = e * nop_per_ensemble + i + 1;
             
             // Use actual source positions from source.txt (already loaded in sources[0])
-            const float log_source_x = source_x;
-            const float log_source_y = source_y;
-            const float log_source_z = source_z;
+            const float log_source_x = sources[0].lon;
+            const float log_source_y = sources[0].lat;
+            const float log_source_z = sources[0].height;
             
             logFile << e << "," << global_id << "," << time_step_index << ","
                    << std::scientific << std::setprecision(6) << base_concentration << ","
