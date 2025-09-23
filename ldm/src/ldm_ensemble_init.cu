@@ -260,16 +260,15 @@ void saveEnsembleInitializationLog(int Nens, int nop_per_ensemble,
             const float base_concentration = emission_flat[e * T + time_step_index];
             const int global_id = e * nop_per_ensemble + i + 1;
             
-            // Use actual source positions from EKI config
-            EKIConfig* ekiConfig = EKIConfig::getInstance();
-            const float source_x = (ekiConfig->getSourceLon() + 179.0f) / 0.5f;
-            const float source_y = (ekiConfig->getSourceLat() + 90.0f) / 0.5f;
-            const float source_z = ekiConfig->getSourceAlt();
+            // Use actual source positions from source.txt (already loaded in sources[0])
+            const float log_source_x = source_x;
+            const float log_source_y = source_y;
+            const float log_source_z = source_z;
             
             logFile << e << "," << global_id << "," << time_step_index << ","
                    << std::scientific << std::setprecision(6) << base_concentration << ","
-                   << std::fixed << std::setprecision(3) << source_x << ","
-                   << source_y << "," << source_z << "\n";
+                   << std::fixed << std::setprecision(3) << log_source_x << ","
+                   << log_source_y << "," << log_source_z << "\n";
         }
     }
     

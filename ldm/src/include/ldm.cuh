@@ -386,6 +386,9 @@ public:
     bool ensemble_mode_active = false;
     int current_Nens = 1;
     int current_nop_per_ensemble = 0;
+    
+    // Getter for sources (to access sources loaded from source.txt)
+    const std::vector<Source>& getSources() const { return sources; }
 
     // ldm_mdata.cuh
     void initializeFlexGFSData();  // Used in main

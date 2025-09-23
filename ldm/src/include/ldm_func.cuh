@@ -257,12 +257,19 @@ void LDM::runSimulation(){
         if(timestep >= 1079 && timestep <= 1081) {
             printf("[DEBUG] Step %d: currentTime=%.1f, left=%d, gfs_idx=%d\n", timestep, currentTime, left_val, gfs_idx);
         }
+
+        //printf("[DEBUG] Step %d: currentTime=%.1f, left=%d, gfs_idx=%d\n", timestep, currentTime, left_val, gfs_idx);
+
         
         if(left_val > gfs_idx) {
             printf("[INFO] Condition met: currentTime=%.1f, time_interval=%d, left=%d, gfs_idx=%d\n", 
                    currentTime, time_interval, left_val, gfs_idx);
             loadFlexGFSData();
         }
+
+        // if (ensemble_mode_active) {
+        //     printf("left_val = %d, gfs_idx = %d\n", left_val, gfs_idx);
+        // }
 
     }
 

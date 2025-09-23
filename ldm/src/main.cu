@@ -246,6 +246,8 @@ bool runSingleModeLDM(LDM& ldm) {
     ldm.startTimer();
     ldm.runSimulation();
     ldm.stopTimer();
+
+    gfs_idx = 0;
     
     std::cout << "  [1.5] Single mode simulation completed" << std::endl;
     
@@ -336,14 +338,12 @@ bool runEnsembleLDM(LDM& ldm, const std::vector<std::vector<float>>& ensemble_ma
     // No need for a single emission time series - each ensemble has its own data in ensemble_matrix
     // This will be handled in initializeEnsembleParticles function
     
-    // Create source from EKI configuration
-    std::vector<Source> sources;
-    EKIConfig* ekiConfig = EKIConfig::getInstance();
-    Source eki_source;
-    eki_source.lat = ekiConfig->getSourceLat();
-    eki_source.lon = ekiConfig->getSourceLon();
-    eki_source.height = ekiConfig->getSourceAlt();
-    sources.push_back(eki_source);
+    // Use source from LDM's loaded source.txt configuration
+    if (ldm.getSources().empty()) {
+        std::cerr << "[ERROR] No sources loaded from source.txt" << std::endl;
+        return 1;
+    }
+    std::vector<Source> sources = ldm.getSources();  // Use sources from source.txt
     
     std::cout << "  [5.4] Initializing ensemble particles..." << std::endl;
     

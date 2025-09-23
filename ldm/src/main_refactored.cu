@@ -145,12 +145,12 @@ int main(int argc, char** argv) {
     std::cout << "[INFO] Consistency checks passed: Nens=" << Nens 
               << ", nop_per_ensemble=" << nop_per_ensemble << ", T=" << emis.T << std::endl;
     
-    std::vector<Source> sources;
-    Source s;
-    s.lat = ekiConfig->getSourceLat();
-    s.lon = ekiConfig->getSourceLon(); 
-    s.height = ekiConfig->getSourceAlt();
-    sources.push_back(s);
+    // Use source from LDM's loaded source.txt configuration
+    if (ldm.getSources().empty()) {
+        std::cerr << "[ERROR] No sources loaded from source.txt" << std::endl;
+        return 1;
+    }
+    std::vector<Source> sources = ldm.getSources();  // Use sources from source.txt
     
     if (!ldm.initializeParticlesEnsemblesFlat(Nens, emis.flat, sources, nop_per_ensemble)) {
         std::cerr << "[ERROR] Ensemble initialization failed" << std::endl;

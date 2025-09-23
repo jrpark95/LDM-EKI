@@ -329,10 +329,16 @@ bool LDM::writeIntegrationDebugLogs(const std::string& dir, const std::string& t
         file << "sigma_rel: 0.1\n";
         file << "MDA: 1.0e-8\n";
         
-        file << "\nSource Configuration:\n";
-        file << "lat: " << ekiConfig->getSourceLat() << "\n";
-        file << "lon: " << ekiConfig->getSourceLon() << "\n";
-        file << "alt: " << ekiConfig->getSourceAlt() << "\n";
+        file << "\nSource Configuration (from source.txt):\n";
+        if (!sources.empty()) {
+            file << "lat: " << sources[0].lat << "\n";
+            file << "lon: " << sources[0].lon << "\n"; 
+            file << "alt: " << sources[0].height << "\n";
+        } else {
+            file << "lat: ERROR - no sources loaded\n";
+            file << "lon: ERROR - no sources loaded\n";
+            file << "alt: ERROR - no sources loaded\n";
+        }
         
         std::cout << "[INFO] Run header written: " << filepath << std::endl;
     }

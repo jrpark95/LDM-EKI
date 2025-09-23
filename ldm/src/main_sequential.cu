@@ -261,14 +261,13 @@ bool runEnsembleLDM(LDM& ldm, const std::vector<std::vector<float>>& ensemble_ma
     // Use ensemble matrix directly (no conversion needed)
     std::cout << "  [5.3] Using ensemble matrix with ensemble-specific emission rates..." << std::endl;
     
-    // Create source from EKI configuration
-    std::vector<Source> sources;
-    EKIConfig* ekiConfig = EKIConfig::getInstance();
-    Source eki_source;
-    eki_source.lat = ekiConfig->getSourceLat();
-    eki_source.lon = ekiConfig->getSourceLon();
-    eki_source.height = ekiConfig->getSourceAlt();
-    sources.push_back(eki_source);
+    // Use source from LDM's loaded source.txt configuration
+    // LDM object already has sources loaded from source.txt in loadSimulationConfiguration()
+    if (ldm.getSources().empty()) {
+        std::cerr << "[ERROR] No sources loaded from source.txt" << std::endl;
+        return 1;
+    }
+    std::vector<Source> sources = ldm.getSources();  // Use sources from source.txt
     
     std::cout << "  [5.4] Initializing ensemble particles..." << std::endl;
     
