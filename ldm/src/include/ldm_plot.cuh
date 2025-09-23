@@ -85,7 +85,7 @@ void LDM::outputParticlesBinaryMPI(int timestep){
     vtkFile << "POINT_DATA " << part_num << "\n";
     vtkFile << "SCALARS u_wind float 1\n";
     vtkFile << "LOOKUP_TABLE default\n";
-    for (int i = 0; i < enop; ++i){
+    for (int i = 0; i < total_particles; ++i){
         if(!part[i].flag) continue;
         float vval = part[i].u_wind;
         swapByteOrder(vval); 
@@ -94,7 +94,7 @@ void LDM::outputParticlesBinaryMPI(int timestep){
 
     vtkFile << "SCALARS v_wind float 1\n"; 
     vtkFile << "LOOKUP_TABLE default\n";
-    for (int i = 0; i < enop; ++i){
+    for (int i = 0; i < total_particles; ++i){
         if(!part[i].flag) continue;
         float vval = part[i].v_wind;
         swapByteOrder(vval); 
@@ -103,7 +103,7 @@ void LDM::outputParticlesBinaryMPI(int timestep){
 
     vtkFile << "SCALARS w_wind float 1\n"; 
     vtkFile << "LOOKUP_TABLE default\n";
-    for (int i = 0; i < enop; ++i){
+    for (int i = 0; i < total_particles; ++i){
         if(!part[i].flag) continue;
         float vval = part[i].w_wind;
         swapByteOrder(vval); 
@@ -112,7 +112,7 @@ void LDM::outputParticlesBinaryMPI(int timestep){
 
     vtkFile << "SCALARS virtual_dist float 1\n";
     vtkFile << "LOOKUP_TABLE default\n";
-    for (int i = 0; i < enop; ++i){
+    for (int i = 0; i < total_particles; ++i){
         if(!part[i].flag) continue;
         float vval = part[i].virtual_distance;
         swapByteOrder(vval); 
@@ -121,7 +121,7 @@ void LDM::outputParticlesBinaryMPI(int timestep){
 
     vtkFile << "SCALARS Q float 1\n";
     vtkFile << "LOOKUP_TABLE default\n";
-    for (int i = 0; i < enop; ++i){
+    for (int i = 0; i < total_particles; ++i){
         if(!part[i].flag) continue;
         float vval = part[i].conc;
         swapByteOrder(vval); 
