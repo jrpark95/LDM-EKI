@@ -35,7 +35,7 @@ void LDM::loadSimulationConfiguration(){
               << ", RADDECAY=" << g_raddecay << std::endl;
     
     // Clean output directory before simulation
-    cleanOutputDirectory();
+    //cleanOutputDirectory();
     
     //loadRadionuclideData();
 
@@ -246,6 +246,8 @@ void LDM::initializeParticles(){
             }
             
             particle_count++;
+
+            // printf("particle_count=%d, nop=%d\n", particle_count, nop);
         }
     }
 

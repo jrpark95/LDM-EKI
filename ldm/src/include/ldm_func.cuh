@@ -224,7 +224,7 @@ void LDM::runSimulation(){
             }
 
             //particle_output_ASCII(timestep);
-            outputParticlesBinaryMPI(timestep);
+            //outputParticlesBinaryMPI(timestep);
             
             // Ensemble VTK output for all ensembles in one file
             if (ensemble_mode_active) {
@@ -232,6 +232,7 @@ void LDM::runSimulation(){
                 outputEnsembleParticlesBinaryMPI(timestep, 0);  // ensemble_id parameter ignored now
             } else {
                 printf("[VTK_DEBUG] Ensemble mode not active at timestep %d\n", timestep);
+                outputParticlesBinaryMPI(timestep);
             }
             
             // Log concentration data for analysis
