@@ -13,8 +13,15 @@
 #include <cmath>
 #include <iomanip>
 #include <numeric>
-#include <sstream>
-#include <cmath>
+#include <unistd.h> // for sleep()
+
+// Forward declarations
+class LDM;
+class EKIConfig;
+
+// Function declarations from main.cu
+bool runEnsembleLDM(LDM& ldm, const std::vector<std::vector<float>>& ensemble_matrix, int time_intervals, int ensemble_size);
+bool loadEKIEnsembleStates(std::vector<std::vector<float>>& ensemble_matrix, int& time_intervals, int& ensemble_size, int iteration);
 
 void writeEKIConfigLog(EKIConfig* ekiConfig);
 
@@ -26,6 +33,9 @@ void cleanLogDirectory();
 void prepareObservationData(EKIConfig* ekiConfig);
 void runVisualization();
 void runEKIEstimation();
+void runIterativeEKIEstimation(LDM& ldm, EKIConfig* ekiConfig);
+bool executeLDMEnsemble(LDM& ldm, int iteration, EKIConfig* ekiConfig);
+void saveObservationToIntegrationLogs(const std::vector<float>& observation_data, int num_receptors, int time_intervals);
 void logLDMtoEKIMatrix(const std::vector<float>& data, int num_receptors, int time_intervals);
 bool loadEKIEnsembleStates(std::vector<std::vector<float>>& ensemble_matrix, int& time_intervals, int& ensemble_size, int iteration);
 void logLDMEnsembleReception(const std::vector<std::vector<float>>& ensemble_matrix, int time_intervals, int ensemble_size, int iteration);

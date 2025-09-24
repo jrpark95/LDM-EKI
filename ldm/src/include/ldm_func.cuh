@@ -294,14 +294,14 @@ void LDM::runSimulation(){
             //particle_output_ASCII(timestep);
             //outputParticlesBinaryMPI(timestep);
             
-            // Ensemble VTK output for all ensembles in one file
-            if (ensemble_mode_active) {
-                printf("[VTK_DEBUG] Ensemble mode active, Nens=%d, outputting all ensembles\n", Nens);
-                outputEnsembleParticlesBinaryMPI(timestep, 0);  // ensemble_id parameter ignored now
-            } else {
-                printf("[VTK_DEBUG] Ensemble mode not active at timestep %d\n", timestep);
-                outputParticlesBinaryMPI(timestep);
-            }
+            // // Ensemble VTK output for all ensembles in one file
+            // if (ensemble_mode_active) {
+            //     printf("[VTK_DEBUG] Ensemble mode active, Nens=%d, outputting all ensembles\n", Nens);
+            //     outputEnsembleParticlesBinaryMPI(timestep, 0);  // ensemble_id parameter ignored now
+            // } else {
+            //     printf("[VTK_DEBUG] Ensemble mode not active at timestep %d\n", timestep);
+            //     outputParticlesBinaryMPI(timestep);
+            // }
             
             // Log concentration data for analysis
             log_first_particle_concentrations(timestep, currentTime);

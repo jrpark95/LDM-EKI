@@ -16,6 +16,7 @@ int g_raddecay = 0;       // Radioactive decay disabled for simple simulation
 
 // Function declarations
 void saveEnsembleInitializationLog(int Nens, const std::vector<float>& emission_time_series, const std::vector<Source>& sources, int nop_per_ensemble);
+int runEnsembleOnly(int iteration);
 
 // Proper ensemble particle activation kernel
 __global__ void update_particle_flags_ensembles(LDM::LDMpart* d_part, int nop_per_ensemble, int Nens, float activationRatio) {
@@ -47,7 +48,7 @@ __global__ void update_particle_flags_ensembles(LDM::LDMpart* d_part, int nop_pe
 // Sequential workflow functions
 bool runSingleModeLDM(LDM& ldm);
 bool runPostProcessing();
-bool runEKIEstimationStep();
+bool runEKIEstimationStep(LDM& ldm, EKIConfig* ekiConfig);
 bool loadEKIEnsembleResults(std::vector<std::vector<float>>& ensemble_matrix, int& time_intervals, int& ensemble_size);
 bool runEnsembleLDM(LDM& ldm, const std::vector<std::vector<float>>& ensemble_matrix, int time_intervals, int ensemble_size);
 
@@ -84,8 +85,32 @@ int main(int argc, char** argv) {
 
     mpiRank = 1;
     mpiSize = 1;
+    
+    // Parse command line arguments
+    bool ensemble_mode = false;
+    int iteration_number = 1;
+    
+    for (int i = 1; i < argc; i++) {
+        if (std::string(argv[i]) == "--ensemble") {
+            ensemble_mode = true;
+        } else if (std::string(argv[i]) == "--iteration" && i + 1 < argc) {
+            iteration_number = std::atoi(argv[i + 1]);
+            i++; // Skip next argument as it's the iteration number
+        }
+    }
+    
+    if (ensemble_mode) {
+        std::cout << "==================================================================" << std::endl;
+        std::cout << "           LDM Ensemble Mode - Iteration " << iteration_number << "                    " << std::endl;
+        std::cout << "==================================================================" << std::endl;
+        std::cout << "Mode: Ensemble calculation using EKI results" << std::endl;
+        std::cout << "==================================================================" << std::endl;
+        
+        // Execute only ensemble calculation
+        return runEnsembleOnly(iteration_number);
+    }
 
-    // Clean all previous log files before starting
+    // Clean all previous log files before starting (single mode only)
     cleanAllLogDirectories();
 
     std::cout << "==================================================================" << std::endl;
@@ -160,40 +185,12 @@ int main(int argc, char** argv) {
     // =================================================================
     std::cout << "\n[STEP 3] Starting EKI Estimation..." << std::endl;
     
-    if (!runEKIEstimationStep()) {
-        std::cerr << "[ERROR] EKI estimation failed" << std::endl;
+    if (!runEKIEstimationStep(ldm, ekiConfig)) {
+        std::cerr << "[ERROR] Iterative EKI-LDM estimation failed" << std::endl;
         return 1;
     }
     
-    std::cout << "[STEP 3] EKI estimation completed successfully" << std::endl;
-
-    // =================================================================
-    // STEP 4: Load EKI Ensemble Results
-    // =================================================================
-    std::cout << "\n[STEP 4] Loading EKI Ensemble Results..." << std::endl;
-    
-    std::vector<std::vector<float>> ensemble_matrix;
-    int time_intervals, ensemble_size;
-    
-    if (!loadEKIEnsembleResults(ensemble_matrix, time_intervals, ensemble_size)) {
-        std::cerr << "[ERROR] Failed to load EKI ensemble results" << std::endl;
-        return 1;
-    }
-    
-    std::cout << "[STEP 4] Successfully loaded ensemble matrix [" 
-              << time_intervals << " x " << ensemble_size << "]" << std::endl;
-
-    // =================================================================
-    // STEP 5: Ensemble Mode LDM Execution
-    // =================================================================
-    std::cout << "\n[STEP 5] Starting Ensemble Mode LDM Execution..." << std::endl;
-    
-    if (!runEnsembleLDM(ldm, ensemble_matrix, time_intervals, ensemble_size)) {
-        std::cerr << "[ERROR] Ensemble mode LDM execution failed" << std::endl;
-        return 1;
-    }
-    
-    std::cout << "[STEP 5] Ensemble mode LDM execution completed successfully" << std::endl;
+    std::cout << "[STEP 3] Iterative EKI-LDM estimation completed successfully" << std::endl;
 
     // =================================================================
     // Final Cleanup and Summary
@@ -274,13 +271,13 @@ bool runPostProcessing() {
     return true;
 }
 
-bool runEKIEstimationStep() {
-    std::cout << "  [3.1] Executing EKI estimation algorithm..." << std::endl;
+bool runEKIEstimationStep(LDM& ldm, EKIConfig* ekiConfig) {
+    std::cout << "  [3.1] Starting iterative EKI-LDM estimation..." << std::endl;
     
-    printSimulationStatus("Running EKI estimation...");
-    ::runEKIEstimation();  // Call global function
+    printSimulationStatus("Running iterative EKI-LDM estimation...");
+    ::runIterativeEKIEstimation(ldm, ekiConfig);  // Call iterative function
     
-    std::cout << "  [3.2] EKI estimation algorithm completed" << std::endl;
+    std::cout << "  [3.2] Iterative EKI-LDM estimation completed" << std::endl;
     
     return true;
 }
@@ -825,4 +822,112 @@ void saveEnsembleObservationsToEKI(const float ensemble_observations[100][24][3]
         csv_file.close();
         std::cout << "  [ENSEMBLE] Saved CSV observations: " << csv_filename << std::endl;
     }
+}
+
+int runEnsembleOnly(int iteration) {
+    std::cout << "[INFO] Running LDM in ensemble-only mode for iteration " << iteration << std::endl;
+    
+    // Load nuclide configuration
+    NuclideConfig* nucConfig = NuclideConfig::getInstance();
+    std::string nuclide_config_file = "./data/input/nuclides_config_1.txt";
+    
+    if (!nucConfig->loadFromFile(nuclide_config_file)) {
+        std::cerr << "[ERROR] Failed to load nuclide configuration" << std::endl;
+        return 1;
+    }
+    g_num_nuclides = nucConfig->getNumNuclides();
+
+    // Load EKI configuration
+    EKIConfig* ekiConfig = EKIConfig::getInstance();
+    std::string eki_config_file = "../eki/config/input_data";
+    
+    if (!ekiConfig->loadFromFile(eki_config_file)) {
+        std::cerr << "[ERROR] Failed to load EKI configuration" << std::endl;
+        return 1;
+    }
+
+    // Load EKI ensemble results for this iteration
+    std::vector<std::vector<float>> ensemble_matrix;
+    int time_intervals, ensemble_size;
+    
+    if (!loadEKIEnsembleStates(ensemble_matrix, time_intervals, ensemble_size, iteration)) {
+        std::cerr << "[ERROR] Failed to load EKI ensemble states for iteration " << iteration << std::endl;
+        return 1;
+    }
+
+    std::cout << "[INFO] Loaded ensemble matrix: " << time_intervals << "×" << ensemble_size << std::endl;
+
+    // Initialize CUDA
+    cudaError_t cudaStatus = cudaSetDevice(0);
+    if (cudaStatus != cudaSuccess) {
+        std::cerr << "[ERROR] CUDA device selection failed!" << std::endl;
+        return 1;
+    }
+
+    // Initialize LDM using existing structure
+    LDM ldm;
+    ldm.loadSimulationConfiguration();
+    printSystemInfo();
+    ldm.calculateAverageSettlingVelocity();
+
+    // Set ensemble parameters
+    int Nens = ensemble_size;
+    int nop_per_ensemble = 1000;  // Use fixed particles per ensemble
+    
+    // Set global ensemble variables
+    ::Nens = Nens;
+    ::nop_per_ensemble = nop_per_ensemble;
+    enop = Nens * nop_per_ensemble;
+    
+    std::cout << "[INFO] Ensemble configuration: " << Nens << " ensembles, " 
+              << nop_per_ensemble << " particles each, total " << enop << std::endl;
+
+    // Initialize ensemble mode
+    ensemble_mode_active = true;
+    ldm.ensemble_mode_active = true;
+    ldm.current_Nens = Nens;
+    ldm.current_nop_per_ensemble = nop_per_ensemble;
+
+    // Get sources from loaded configuration
+    if (ldm.getSources().empty()) {
+        std::cerr << "[ERROR] No sources loaded from source.txt" << std::endl;
+        return 1;
+    }
+    std::vector<Source> sources = ldm.getSources();
+
+    // Initialize ensemble particles
+    bool ensemble_init_success = initializeEnsembleParticles(ldm, ensemble_matrix, time_intervals, ensemble_size, sources);
+    
+    if (!ensemble_init_success) {
+        std::cerr << "[ERROR] Ensemble particle initialization failed" << std::endl;
+        return 1;
+    }
+
+    // Reload configuration for ensemble mode
+    ldm.loadSimulationConfiguration();
+
+    // Run ensemble simulation
+    std::cout << "[INFO] Starting ensemble simulation..." << std::endl;
+    ldm.startTimer();
+    ldm.runSimulation();
+    ldm.stopTimer();
+
+    // Calculate and save ensemble observations
+    static float ensemble_observations[100][24][3];
+    bool obs_success = calculateEnsembleObservations(ensemble_observations, ensemble_size, time_intervals, ldm.part);
+    
+    if (obs_success) {
+        saveEnsembleObservationsToEKI(ensemble_observations, ensemble_size, time_intervals, iteration);
+        std::cout << "[INFO] Ensemble observations saved for iteration " << iteration << std::endl;
+    } else {
+        std::cerr << "[ERROR] Failed to calculate ensemble observations" << std::endl;
+        return 1;
+    }
+
+    // Reset ensemble mode
+    ensemble_mode_active = false;
+    ldm.ensemble_mode_active = false;
+
+    std::cout << "[INFO] Ensemble simulation completed for iteration " << iteration << std::endl;
+    return 0;
 }

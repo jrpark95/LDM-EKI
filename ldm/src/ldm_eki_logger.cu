@@ -304,6 +304,9 @@ void prepareObservationData(EKIConfig* ekiConfig) {
         std::cout << "[WARNING] Failed to save observation data to file." << std::endl;
     }
     
+    // Save observation data to integration_logs for analysis
+    saveObservationToIntegrationLogs(observation_data, num_receptors, time_intervals);
+    
     // Log LDM->EKI matrix transmission in ASCII format
     logLDMtoEKIMatrix(observation_data, num_receptors, time_intervals);
 }
@@ -325,26 +328,147 @@ void runVisualization() {
     std::cout << "  - animation_frame_*.png (individual OSM frames)" << std::endl;
 }
 
-void runEKIEstimation() {
-    std::cout << "\n[INFO] Starting EKI source estimation..." << std::endl;
-    std::cout << "[INFO] Running EKI RunEstimator.py with config files..." << std::endl;
+void runIterativeEKIEstimation(LDM& ldm, EKIConfig* ekiConfig) {
+    const int max_iterations = 5; // Maximum number of EKI iterations
     
-    // Backup original config and create temporary config with iteration=1
-    std::cout << "[INFO] Creating temporary EKI config with iteration=1..." << std::endl;
+    std::cout << "\n[INFO] Starting iterative EKI-LDM estimation..." << std::endl;
+    
+    // Initialize iteration status file
+    system("mkdir -p /home/jrpark/LDM-EKI/logs/integration_logs");
+    std::ofstream status_file("/home/jrpark/LDM-EKI/logs/integration_logs/iteration_status.txt");
+    status_file << "iteration: 0\nstatus: initialized\n";
+    status_file.close();
+    
+    // Backup original EKI config
     system("cd /home/jrpark/LDM-EKI/eki && cp config/input_config config/input_config_backup");
-    system("cd /home/jrpark/LDM-EKI/eki && sed 's/iteration: [0-9]*/iteration: 1/' config/input_config > config/input_config_temp");
     
-    int eki_result = system("cd /home/jrpark/LDM-EKI/eki && python3 src/RunEstimator.py config/input_config_temp config/input_data");
+    for (int iter = 1; iter <= max_iterations; iter++) {
+        std::cout << "\n[INFO] === EKI Iteration " << iter << " ===" << std::endl;
+        
+        // Update iteration status
+        std::ofstream status_file("/home/jrpark/LDM-EKI/logs/integration_logs/iteration_status.txt");
+        status_file << "iteration: " << iter << "\nstatus: eki_running\n";
+        status_file.close();
+        
+        // Create temporary config for single iteration
+        std::string sed_cmd = "cd /home/jrpark/LDM-EKI/eki && sed 's/iteration: [0-9]*/iteration: 1/' config/input_config > config/input_config_temp";
+        system(sed_cmd.c_str());
+        
+        // Run EKI with iteration number parameter
+        std::string eki_cmd = "cd /home/jrpark/LDM-EKI/eki && python3 src/RunEstimator.py config/input_config_temp config/input_data " + std::to_string(iter);
+        int eki_result = system(eki_cmd.c_str());
+        
+        if (eki_result != 0) {
+            std::cout << "[ERROR] EKI iteration " << iter << " failed with exit code: " << eki_result << std::endl;
+            break;
+        }
+        
+        std::cout << "[INFO] EKI iteration " << iter << " completed. Starting ensemble LDM calculation..." << std::endl;
+        
+        // Update status to LDM running
+        std::ofstream status_file2("/home/jrpark/LDM-EKI/logs/integration_logs/iteration_status.txt");
+        status_file2 << "iteration: " << iter << "\nstatus: ldm_running\n";
+        status_file2.close();
+        
+        // Execute LDM ensemble calculation directly (no background process)
+        if (!executeLDMEnsemble(ldm, iter, ekiConfig)) {
+            std::cout << "[ERROR] LDM ensemble execution failed for iteration " << iter << std::endl;
+            break;
+        }
+        
+        std::cout << "[INFO] Iteration " << iter << " completed successfully." << std::endl;
+        
+        // Update status to completed
+        std::ofstream status_file3("/home/jrpark/LDM-EKI/logs/integration_logs/iteration_status.txt");
+        status_file3 << "iteration: " << iter << "\nstatus: completed\n";
+        status_file3.close();
+        
+        // Check if we should continue (convergence check would go here)
+        // For now, continue all iterations
+    }
     
-    // Restore original config
+    // Restore original config and cleanup
     system("cd /home/jrpark/LDM-EKI/eki && mv config/input_config_backup config/input_config");
     system("cd /home/jrpark/LDM-EKI/eki && rm -f config/input_config_temp");
     
-    if (eki_result == 0) {
-        std::cout << "[INFO] EKI source estimation completed successfully." << std::endl;
-        std::cout << "[INFO] Check eki/results/ for estimation results and plots." << std::endl;
-    } else {
-        std::cout << "[WARNING] EKI estimation failed with exit code: " << eki_result << std::endl;
+    std::cout << "\n[INFO] Iterative EKI-LDM estimation completed." << std::endl;
+}
+
+bool executeLDMEnsemble(LDM& ldm, int iteration, EKIConfig* ekiConfig) {
+    std::cout << "[INFO] Executing LDM ensemble calculation for iteration " << iteration << std::endl;
+    
+    // Load EKI ensemble results for this iteration
+    std::vector<std::vector<float>> ensemble_matrix;
+    int time_intervals, ensemble_size;
+    
+    if (!loadEKIEnsembleStates(ensemble_matrix, time_intervals, ensemble_size, iteration)) {
+        std::cerr << "[ERROR] Failed to load EKI ensemble states for iteration " << iteration << std::endl;
+        return false;
+    }
+
+    std::cout << "[INFO] Loaded ensemble matrix: " << time_intervals << "×" << ensemble_size << std::endl;
+
+    // Run ensemble simulation directly without creating new process
+    if (!runEnsembleLDM(ldm, ensemble_matrix, time_intervals, ensemble_size)) {
+        std::cerr << "[ERROR] Ensemble LDM execution failed for iteration " << iteration << std::endl;
+        return false;
+    }
+    
+    std::cout << "[INFO] LDM ensemble calculation completed for iteration " << iteration << std::endl;
+    return true;
+}
+
+// waitForLDMCompletion function removed - now using direct execution
+
+// Legacy function for backward compatibility - needs ldm and ekiConfig parameters
+// This function is now deprecated - use runIterativeEKIEstimation directly
+
+void saveObservationToIntegrationLogs(const std::vector<float>& observation_data, int num_receptors, int time_intervals) {
+    std::cout << "[INFO] Saving observation data to integration_logs..." << std::endl;
+    
+    // Create integration_logs directory if it doesn't exist
+    system("mkdir -p /home/jrpark/LDM-EKI/logs/integration_logs");
+    
+    // Get current time for timestamp
+    auto now = std::chrono::system_clock::now();
+    auto time_t_now = std::chrono::system_clock::to_time_t(now);
+    std::stringstream timestamp;
+    timestamp << std::put_time(std::localtime(&time_t_now), "%Y%m%d_%H%M%S");
+    
+    // Save as CSV
+    std::string csv_filename = "/home/jrpark/LDM-EKI/logs/integration_logs/single_mode_observations_" + timestamp.str() + ".csv";
+    std::ofstream csv_file(csv_filename);
+    
+    if (csv_file.is_open()) {
+        // Write header
+        csv_file << "# LDM Single Mode Observation Data\n";
+        csv_file << "# Generated: " << std::put_time(std::localtime(&time_t_now), "%Y-%m-%d %H:%M:%S") << "\n";
+        csv_file << "# Receptors: " << num_receptors << "\n";
+        csv_file << "# Time intervals: " << time_intervals << "\n";
+        csv_file << "# Total elements: " << observation_data.size() << "\n";
+        csv_file << "# Data format: receptor_id,time_step,concentration\n";
+        csv_file << "receptor_id,time_step,concentration\n";
+        
+        // Write data
+        for (int r = 0; r < num_receptors; r++) {
+            for (int t = 0; t < time_intervals; t++) {
+                int idx = r * time_intervals + t;
+                csv_file << r << "," << t << "," << std::scientific << std::setprecision(6) << observation_data[idx] << "\n";
+            }
+        }
+        
+        csv_file.close();
+        std::cout << "[INFO] Observation CSV saved: " << csv_filename << std::endl;
+    }
+    
+    // Save as binary for EKI consumption
+    std::string bin_filename = "/home/jrpark/LDM-EKI/logs/integration_logs/single_mode_observations_" + timestamp.str() + ".bin";
+    std::ofstream bin_file(bin_filename, std::ios::binary);
+    
+    if (bin_file.is_open()) {
+        bin_file.write(reinterpret_cast<const char*>(observation_data.data()), observation_data.size() * sizeof(float));
+        bin_file.close();
+        std::cout << "[INFO] Observation binary saved: " << bin_filename << std::endl;
     }
 }
 
