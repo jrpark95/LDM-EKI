@@ -50,7 +50,7 @@ bool runSingleModeLDM(LDM& ldm);
 bool runPostProcessing();
 bool runEKIEstimationStep(LDM& ldm, EKIConfig* ekiConfig);
 bool loadEKIEnsembleResults(std::vector<std::vector<float>>& ensemble_matrix, int& time_intervals, int& ensemble_size);
-bool runEnsembleLDM(LDM& ldm, const std::vector<std::vector<float>>& ensemble_matrix, int time_intervals, int ensemble_size);
+bool runEnsembleLDM(LDM& ldm, const std::vector<std::vector<float>>& ensemble_matrix, int time_intervals, int ensemble_size, int iteration);
 
 // Ensemble simulation functions
 bool initializeEnsembleParticles(LDM& ldm, const std::vector<std::vector<float>>& ensemble_matrix, int time_intervals, int ensemble_size, const std::vector<Source>& sources);
@@ -264,7 +264,7 @@ bool runPostProcessing() {
     prepareObservationData(ekiConfig);
     
     std::cout << "  [2.2] Running visualization..." << std::endl;
-    runVisualization();
+    // runVisualization();  // Temporarily commented out to speed up execution
     
     std::cout << "  [2.3] Post-processing completed" << std::endl;
     
@@ -311,7 +311,7 @@ bool loadEKIEnsembleResults(std::vector<std::vector<float>>& ensemble_matrix,
 }
 
 bool runEnsembleLDM(LDM& ldm, const std::vector<std::vector<float>>& ensemble_matrix, 
-                   int time_intervals, int ensemble_size) {
+                   int time_intervals, int ensemble_size, int iteration) {
     std::cout << "  [5.1] Configuring ensemble mode..." << std::endl;
     
     // Set ensemble mode parameters
@@ -401,8 +401,8 @@ bool runEnsembleLDM(LDM& ldm, const std::vector<std::vector<float>>& ensemble_ma
         return false;
     }
     
-    // Save observations for EKI
-    saveEnsembleObservationsToEKI(ensemble_observations, ensemble_size, time_intervals, 1);
+    // Save observations for next EKI iteration
+    saveEnsembleObservationsToEKI(ensemble_observations, ensemble_size, time_intervals, iteration + 1);
     
     std::cout << "  [5.7] Ensemble observations calculated and saved for EKI feedback" << std::endl;
     

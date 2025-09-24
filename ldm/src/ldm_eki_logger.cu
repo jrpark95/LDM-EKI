@@ -329,8 +329,6 @@ void runVisualization() {
 }
 
 void runIterativeEKIEstimation(LDM& ldm, EKIConfig* ekiConfig) {
-    const int max_iterations = 5; // Maximum number of EKI iterations
-    
     std::cout << "\n[INFO] Starting iterative EKI-LDM estimation..." << std::endl;
     
     // Initialize iteration status file
@@ -339,59 +337,42 @@ void runIterativeEKIEstimation(LDM& ldm, EKIConfig* ekiConfig) {
     status_file << "iteration: 0\nstatus: initialized\n";
     status_file.close();
     
-    // Backup original EKI config
-    system("cd /home/jrpark/LDM-EKI/eki && cp config/input_config config/input_config_backup");
+    int max_iterations = 5;
     
-    for (int iter = 1; iter <= max_iterations; iter++) {
-        std::cout << "\n[INFO] === EKI Iteration " << iter << " ===" << std::endl;
+    for (int iteration = 1; iteration <= max_iterations; iteration++) {
+        std::cout << "\n[INFO] === EKI Iteration " << iteration << " ===" << std::endl;
         
-        // Update iteration status
-        std::ofstream status_file("/home/jrpark/LDM-EKI/logs/integration_logs/iteration_status.txt");
-        status_file << "iteration: " << iter << "\nstatus: eki_running\n";
-        status_file.close();
+        // Update status to EKI running
+        std::ofstream status_file_iter("/home/jrpark/LDM-EKI/logs/integration_logs/iteration_status.txt");
+        status_file_iter << "iteration: " << iteration << "\nstatus: eki_running\n";
+        status_file_iter.close();
         
-        // Create temporary config for single iteration
-        std::string sed_cmd = "cd /home/jrpark/LDM-EKI/eki && sed 's/iteration: [0-9]*/iteration: 1/' config/input_config > config/input_config_temp";
-        system(sed_cmd.c_str());
-        
-        // Run EKI with iteration number parameter
-        std::string eki_cmd = "cd /home/jrpark/LDM-EKI/eki && python3 src/RunEstimator.py config/input_config_temp config/input_data " + std::to_string(iter);
+        // Run EKI for this iteration using the iteration parameter
+        std::string eki_cmd = "cd /home/jrpark/LDM-EKI/eki && python3 src/RunEstimator.py config/input_config config/input_data " + std::to_string(iteration);
         int eki_result = system(eki_cmd.c_str());
         
         if (eki_result != 0) {
-            std::cout << "[ERROR] EKI iteration " << iter << " failed with exit code: " << eki_result << std::endl;
-            break;
+            std::cout << "[ERROR] EKI iteration " << iteration << " failed with exit code: " << eki_result << std::endl;
+            return;
         }
         
-        std::cout << "[INFO] EKI iteration " << iter << " completed. Starting ensemble LDM calculation..." << std::endl;
+        std::cout << "[INFO] EKI iteration " << iteration << " completed. Starting ensemble LDM calculation..." << std::endl;
         
-        // Update status to LDM running
-        std::ofstream status_file2("/home/jrpark/LDM-EKI/logs/integration_logs/iteration_status.txt");
-        status_file2 << "iteration: " << iter << "\nstatus: ldm_running\n";
-        status_file2.close();
-        
-        // Execute LDM ensemble calculation directly (no background process)
-        if (!executeLDMEnsemble(ldm, iter, ekiConfig)) {
-            std::cout << "[ERROR] LDM ensemble execution failed for iteration " << iter << std::endl;
-            break;
+        // Run ensemble LDM for this iteration
+        if (!executeLDMEnsemble(ldm, iteration, ekiConfig)) {
+            std::cout << "[ERROR] LDM ensemble execution failed for iteration " << iteration << std::endl;
+            return;
         }
         
-        std::cout << "[INFO] Iteration " << iter << " completed successfully." << std::endl;
-        
-        // Update status to completed
-        std::ofstream status_file3("/home/jrpark/LDM-EKI/logs/integration_logs/iteration_status.txt");
-        status_file3 << "iteration: " << iter << "\nstatus: completed\n";
-        status_file3.close();
-        
-        // Check if we should continue (convergence check would go here)
-        // For now, continue all iterations
+        std::cout << "[INFO] Iteration " << iteration << " completed successfully." << std::endl;
     }
     
-    // Restore original config and cleanup
-    system("cd /home/jrpark/LDM-EKI/eki && mv config/input_config_backup config/input_config");
-    system("cd /home/jrpark/LDM-EKI/eki && rm -f config/input_config_temp");
+    // Update final status
+    std::ofstream status_file_final("/home/jrpark/LDM-EKI/logs/integration_logs/iteration_status.txt");
+    status_file_final << "iteration: " << max_iterations << "\nstatus: completed\n";
+    status_file_final.close();
     
-    std::cout << "\n[INFO] Iterative EKI-LDM estimation completed." << std::endl;
+    std::cout << "\n[INFO] Iterative EKI-LDM estimation completed successfully!" << std::endl;
 }
 
 bool executeLDMEnsemble(LDM& ldm, int iteration, EKIConfig* ekiConfig) {
@@ -409,7 +390,7 @@ bool executeLDMEnsemble(LDM& ldm, int iteration, EKIConfig* ekiConfig) {
     std::cout << "[INFO] Loaded ensemble matrix: " << time_intervals << "×" << ensemble_size << std::endl;
 
     // Run ensemble simulation directly without creating new process
-    if (!runEnsembleLDM(ldm, ensemble_matrix, time_intervals, ensemble_size)) {
+    if (!runEnsembleLDM(ldm, ensemble_matrix, time_intervals, ensemble_size, iteration)) {
         std::cerr << "[ERROR] Ensemble LDM execution failed for iteration " << iteration << std::endl;
         return false;
     }

@@ -20,7 +20,7 @@ class LDM;
 class EKIConfig;
 
 // Function declarations from main.cu
-bool runEnsembleLDM(LDM& ldm, const std::vector<std::vector<float>>& ensemble_matrix, int time_intervals, int ensemble_size);
+bool runEnsembleLDM(LDM& ldm, const std::vector<std::vector<float>>& ensemble_matrix, int time_intervals, int ensemble_size, int iteration);
 bool loadEKIEnsembleStates(std::vector<std::vector<float>>& ensemble_matrix, int& time_intervals, int& ensemble_size, int iteration);
 
 void writeEKIConfigLog(EKIConfig* ekiConfig);
