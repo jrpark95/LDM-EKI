@@ -5,23 +5,31 @@ void LDM::initializeFlexGFSData(){
 
     std::cout << "[DEBUG] Starting read_meteorological_flex_gfs_init3 function..." << std::endl;
     
+    // Calculate required number of timesteps based on time_end and time_interval
+    int required_timesteps = static_cast<int>(time_end / time_interval) + 1; // +1 for initial condition
+    std::cout << "[INFO] Calculated required timesteps: " << required_timesteps << " (time_end=" << time_end << ", time_interval=" << time_interval << ")" << std::endl;
+    
     // First, detect how many timestep files are available
-    num_timesteps_available = 0;
+    int available_timesteps = 0;
     char test_filename[256];
     while (true) {
-        sprintf(test_filename, "./data/input/flexprewind/%d.txt", num_timesteps_available);
+        sprintf(test_filename, "./data/input/flexprewind/%d.txt", available_timesteps);
         std::ifstream test_file(test_filename);
         if (!test_file.is_open()) {
             break;
         }
         test_file.close();
-        num_timesteps_available++;
-        if (num_timesteps_available > 100) { // Safety limit (more reasonable for 3-hour intervals)
+        available_timesteps++;
+        if (available_timesteps > 100) { // Safety limit
             std::cerr << "[WARNING] Too many meteorological files detected (>100), limiting to 100" << std::endl;
-            num_timesteps_available = 100;
+            available_timesteps = 100;
             break;
         }
     }
+    
+    // Use the minimum of required and available timesteps
+    num_timesteps_available = std::min(required_timesteps, available_timesteps);
+    std::cout << "[INFO] Using " << num_timesteps_available << " timesteps (required: " << required_timesteps << ", available: " << available_timesteps << ")" << std::endl;
     
     if (num_timesteps_available < 3) {
         std::cerr << "[ERROR] Not enough meteorological files found. Need at least 3, found " << num_timesteps_available << std::endl;
@@ -455,13 +463,15 @@ void LDM::initializeFlexGFSData(){
     cudaMemcpy3D(&copyParamsB0);
 
     
-    filename = "./data/input/flexprewind/1.txt";
+    // Only load 1.txt if we need more than 1 timestep
+    if (num_timesteps_available > 1) {
+        filename = "./data/input/flexprewind/1.txt";
 
-    file.open(filename, std::ios::binary);
-    if (!file) {
-        std::cerr << "Cannot open file: " << filename << std::endl;
-        return;
-    }
+        file.open(filename, std::ios::binary);
+        if (!file) {
+            std::cerr << "Cannot open file: " << filename << std::endl;
+            return;
+        }
 
     for (int i = 0; i < dimX_GFS+1; ++i) {
         for (int j = 0; j < dimY_GFS; ++j) {
@@ -783,17 +793,18 @@ void LDM::initializeFlexGFSData(){
     copyParamsB1.extent   = extent;
     copyParamsB1.kind     = cudaMemcpyHostToDevice;
     cudaMemcpy3D(&copyParamsB1);
-
+    } // End of 1.txt loading block
 
     
-    
-    filename = "./data/input/flexprewind/2.txt";
+    // Only load 2.txt if we need more than 2 timesteps
+    if (num_timesteps_available > 2) {
+        filename = "./data/input/flexprewind/2.txt";
 
-    file.open(filename, std::ios::binary);
-    if (!file) {
-        std::cerr << "Cannot open file: " << filename << std::endl;
-        return;
-    }
+        file.open(filename, std::ios::binary);
+        if (!file) {
+            std::cerr << "Cannot open file: " << filename << std::endl;
+            return;
+        }
 
     for (int i = 0; i < dimX_GFS+1; ++i) {
         for (int j = 0; j < dimY_GFS; ++j) {
@@ -1106,6 +1117,7 @@ void LDM::initializeFlexGFSData(){
     copyParamsB2.extent   = extent;
     copyParamsB2.kind     = cudaMemcpyHostToDevice;
     cudaMemcpy3D(&copyParamsB2);
+    } // End of 2.txt loading block
 
         
     delete[] flexunisdata;
