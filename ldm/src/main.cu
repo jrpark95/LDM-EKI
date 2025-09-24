@@ -289,25 +289,24 @@ bool loadEKIEnsembleResults(std::vector<std::vector<float>>& ensemble_matrix,
                            int& time_intervals, int& ensemble_size) {
     std::cout << "  [4.1] Loading ensemble states from EKI..." << std::endl;
     
-    // Try to load ensemble from latest iteration
-    for (int iter = 5; iter >= 1; iter--) {
-        if (loadEKIEnsembleStates(ensemble_matrix, time_intervals, ensemble_size, iter)) {
-            std::cout << "  [4.2] Loaded ensemble from iteration " << iter << std::endl;
-            
-            // Validate ensemble data
-            if (ensemble_size != 100 || time_intervals != 24) {
-                std::cerr << "  [4.2] WARNING: Unexpected ensemble dimensions: " 
-                         << time_intervals << "x" << ensemble_size 
-                         << " (expected 24x100)" << std::endl;
-            }
-            
-            // Display sample values
-            float sample_value = ensemble_matrix[0][0];
-            std::cout << "  [4.3] Sample ensemble value [time=0, ensemble=0]: " << sample_value << std::endl;
-            std::cout << "  [4.4] Memory allocated: " << (time_intervals * ensemble_size * sizeof(float)) << " bytes" << std::endl;
-            
-            return true;
+    // Load ensemble from iteration 1 (single EKI run)
+    const int target_iteration = 1;
+    if (loadEKIEnsembleStates(ensemble_matrix, time_intervals, ensemble_size, target_iteration)) {
+        std::cout << "  [4.2] Loaded ensemble from iteration " << target_iteration << std::endl;
+        
+        // Validate ensemble data
+        if (ensemble_size != 100 || time_intervals != 24) {
+            std::cerr << "  [4.2] WARNING: Unexpected ensemble dimensions: " 
+                     << time_intervals << "x" << ensemble_size 
+                     << " (expected 24x100)" << std::endl;
         }
+        
+        // Display sample values
+        float sample_value = ensemble_matrix[0][0];
+        std::cout << "  [4.3] Sample ensemble value [time=0, ensemble=0]: " << sample_value << std::endl;
+        std::cout << "  [4.4] Memory allocated: " << (time_intervals * ensemble_size * sizeof(float)) << " bytes" << std::endl;
+        
+        return true;
     }
     
     std::cerr << "  [4.1] No ensemble files found from any iteration" << std::endl;

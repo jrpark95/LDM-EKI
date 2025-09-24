@@ -329,7 +329,17 @@ void runEKIEstimation() {
     std::cout << "\n[INFO] Starting EKI source estimation..." << std::endl;
     std::cout << "[INFO] Running EKI RunEstimator.py with config files..." << std::endl;
     
-    int eki_result = system("cd /home/jrpark/LDM-EKI/eki && python3 src/RunEstimator.py config/input_config config/input_data");
+    // Backup original config and create temporary config with iteration=1
+    std::cout << "[INFO] Creating temporary EKI config with iteration=1..." << std::endl;
+    system("cd /home/jrpark/LDM-EKI/eki && cp config/input_config config/input_config_backup");
+    system("cd /home/jrpark/LDM-EKI/eki && sed 's/iteration: [0-9]*/iteration: 1/' config/input_config > config/input_config_temp");
+    
+    int eki_result = system("cd /home/jrpark/LDM-EKI/eki && python3 src/RunEstimator.py config/input_config_temp config/input_data");
+    
+    // Restore original config
+    system("cd /home/jrpark/LDM-EKI/eki && mv config/input_config_backup config/input_config");
+    system("cd /home/jrpark/LDM-EKI/eki && rm -f config/input_config_temp");
+    
     if (eki_result == 0) {
         std::cout << "[INFO] EKI source estimation completed successfully." << std::endl;
         std::cout << "[INFO] Check eki/results/ for estimation results and plots." << std::endl;
